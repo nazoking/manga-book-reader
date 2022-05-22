@@ -5,7 +5,7 @@ import crypto from 'crypto';
 
 import { build } from 'esbuild';
 
-const minify = false;
+const minify = true;
 
 const embedCss = ({tmpDir, minify}:{ tmpDir: string, minify: boolean }) => {
   const cache = new Map();
