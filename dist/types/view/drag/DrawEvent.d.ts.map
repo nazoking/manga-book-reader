@@ -1,0 +1,1 @@
+{"version":3,"file":"DrawEvent.d.ts","sourceRoot":"","sources":["../../../../src/view/drag/DrawEvent.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,SAAS,EAAE,MAAM,aAAa,CAAC;AAExC,qBAAa,SAAS;IACD,QAAQ,EAAE,KAAK,CAAC,SAAS,CAAC;gBAA1B,QAAQ,EAAE,KAAK,CAAC,SAAS,CAAC;CAC9C"}

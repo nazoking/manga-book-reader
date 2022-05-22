@@ -1,0 +1,1 @@
+{"version":3,"file":"ZoomEvent.d.ts","sourceRoot":"","sources":["../../../../src/view/drag/ZoomEvent.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,KAAK,EAAE,MAAM,SAAS,CAAC;AAChC,OAAO,EAAE,YAAY,EAAE,MAAM,gBAAgB,CAAC;AAE9C,qBAAa,SAAU,YAAW,YAAY;aAE1B,IAAI,EAAE,MAAM;aACZ,MAAM,EAAE,KAAK;aACb,QAAQ,EAAE,MAAM;gBAFhB,IAAI,EAAE,MAAM,EACZ,MAAM,EAAE,KAAK,EACb,QAAQ,EAAE,MAAM;CAEnC"}
