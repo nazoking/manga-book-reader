@@ -1,0 +1,21 @@
+{
+  "include": ["src/**/*.ts"],
+  /* https://www.typescriptlang.org/ja/tsconfig */
+  "compilerOptions": {
+    "outDir": "./out/js",
+    "moduleResolution": "Node",
+    "target": "ESNext",
+    "module": "ES2022",
+    "lib": ["DOM","DOM.Iterable","ES2022"],
+    "isolatedModules": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": false,
+    "forceConsistentCasingInFileNames": false,
+    "incremental": true,
+    "emitDeclarationOnly": true,
+    "declaration": true,
+    "declarationMap": true,
+    "declarationDir": "./dist/types",
+  },
+}
