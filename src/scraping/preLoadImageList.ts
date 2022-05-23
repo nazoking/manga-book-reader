@@ -8,7 +8,6 @@ export const preLoadImageList = async (srcList:string[] | undefined) => {
       link.setAttribute('as', 'image');
       link.setAttribute('href', src);
       const next = (message: string) => {
-        console.log(`${message} ${src}`);
         document.head.removeChild(link);
         resolve();
       }

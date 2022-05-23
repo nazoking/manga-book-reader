@@ -31,7 +31,7 @@ export class Viewer {
       this.showControllers();
     });
   }
-  /** DrawHandler は、ジェスチャ（ドラッグしながら一定距離動く）をハンドリングする */
+  /** DrawHandler handles gestures (moving a certain distance while dragging) */
   setDrawHandler(drawHandler: EventHandler<string>) {
     this.zoom = new Zoom({
       setTransform: (t) => {
@@ -48,7 +48,7 @@ export class Viewer {
     });
     drag.attach(this.div);
   }
-  /** クリックハンドラは、エレメントをクリックすることで発生するイベントをハンドリングする */
+  /** Click handlers handle events that occur when you click on an element */
   setClickHandler(clickHandler: EventHandler<Element>) {
     this.div.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -66,7 +66,7 @@ export class Viewer {
       }
     });
   }
-  /** キーハンドラはキーボードイベントをハンドリングする */
+  /** Key handlers handle keyboard events */
   setKeyHandler(keyHandler: EventHandler<KeyEvent>) {
     this.div.addEventListener(
       "keydown",

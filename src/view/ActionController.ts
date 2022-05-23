@@ -121,7 +121,7 @@ export class ActionController {
       a.action();
     } else {
       if (typeof a == "string") {
-        console.log(`unknown action ${action}`);
+        console.log(`📖unknown action ${action}`);
       }
     }
   }

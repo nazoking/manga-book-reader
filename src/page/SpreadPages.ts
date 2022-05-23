@@ -1,22 +1,22 @@
 import { PageData } from "./PageData";
 
-/** ページの取得状態 */
+/** Page acquisition status */
 export interface SpreadPages {
-  /** 次のページに移動できれば true */
+  /** True if you can move to the next page */
   hasNext(): Promise<boolean>;
-  /** 次のページに移動した状態 */
+  /** Returns the state of moving to the next page. */
   nextPage(): Promise<SpreadPages>;
-  /** 前のページに移動した状態 */
+  /** Returns the state of moving to the previous page. */
   prevPage(): Promise<SpreadPages>;
-  /** 前のページに移動できれば true */
+  /** True if you can move to the previous page */
   hasPrev(): Promise<boolean>;
   move(num: number): Promise<SpreadPages>;
   pageNumber(): number;
   canMove(num: number): Promise<boolean>;
-  /** 左ページ */
+  /** right page */
   image1(): Promise<PageData|null> | null;
-  /** 右ページ */
+  /** left page */
   image2(): Promise<PageData|null> | null;
-  /** 単ページなら true */
+  /** True in double-page spread mode. */
   isSingleUnit(): Promise<boolean>;
 }

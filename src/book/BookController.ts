@@ -1,16 +1,16 @@
 import { SpreadPages } from "../page/SpreadPages";
 import { PageNumber } from "../page/PageNumber";
 
-/** 本の選択状態 */
+/** State of Book selector */
 export interface BookController<T> {
-  /** 指定の本に移動した状態を返す。num は相対ページ位置。前のページなら -1。 */
+  /** Returns the state of being moved to the specified book. num is the relative page position. Pass -1 if you want to move to the previous page. */
   move(num: number): BookController<T>;
-  /** 指定の本に移動できれば true num。 は相対ページ位置。前のページなら -1。*/
+  /** True if you can move to the specified book. num is the relative page position. -1 on the previous page. */
   canMove(num: number): boolean;
-  /** 指定の本に移動した状態を返す。num は絶対ページ位置。 */
+  /** Returns the state of being moved to the specified book. num is the absolute page position. */
   goTo(num: number): BookController<T>;
-  /** 選択中の本情報 */
+  /** This information selected */
   getBookMeta(): T;
-  /** 指定のページ状態を取得 */
+  /** Get the specified page state */
   getSpreadPages(num: PageNumber): Promise<SpreadPages>;
 }

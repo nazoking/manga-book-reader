@@ -7,7 +7,7 @@ type Query = (
 function isXPath(selector: string): selector is `/${string}`{
   return selector.startsWith("/");
 }
-/** selector で DOM を選択する。 selector は css セレクターか xpath */
+/** select dom. selector is css-selector or xpath */
 const queryi = <T extends Node> (selector: string, contextNode?: Node | ParentNode): Array<T> => {
   const context = contextNode || document;
   if(isXPath(selector)){

@@ -25,7 +25,7 @@ const toGetter = (getterable: Getterable) => async (doc: Document) => {
       if (imgs[0] instanceof HTMLImageElement) {
         return inferPages((imgs as Array<HTMLImageElement>).map(e => e.dataset.lazySrc || e.dataset.src || e.src));
       }
-      throw new Error(`未対応の Node ${imgs[0]}`);
+      throw new Error(`📖Un Supported Node ${imgs[0]}`);
     }
     return imgs;
   };
@@ -56,7 +56,7 @@ export const scraping = async ({
 }) => {
   const getPageImageList = toGetter(pageList);
   if (!bookList || bookList.length == 0) {
-    console.log("bookList は見つかりません");
+    console.log("📖bookList not found");
     const pages = await getPageImageList(document);
     if (pages.length) {
       const book = Book(pages.map(async (src) => ({ src })));
@@ -67,17 +67,17 @@ export const scraping = async ({
         controller,
       }
     }
-    console.log("pageList も見つかりません");
+    console.log("📖pageList not found");
     return;
   }
   const bookmark = await bookmarker.read();
   let bookNumber = Math.max(bookList.findIndex((c) => c.title == bookmark?.title), 0);
-  console.log("start ", bookmark, bookNumber, bookList);
+  console.log("📖start ", bookmark, bookNumber, bookList);
   const { controller, action } = multiBook({
     bookList,
     viewerDom,
     getBook: async (book) => {
-      console.log("load=", book);
+      console.log("📖load=", book);
       const r = await fetch(book.url);
       const txt = await r.text();
       const dom = new DOMParser().parseFromString(txt, "text/html");
@@ -87,7 +87,7 @@ export const scraping = async ({
         dom.head.append(base);
       }
       const pageList = await getPageImageList(dom);
-      console.log("pageList=", pageList);
+      console.log("📖pageList=", pageList);
       setTimeout(() => preLoadImageList(pageList), 1000);
       return Book(pageList.map(async (src) => ({ src })));
     },
@@ -100,7 +100,7 @@ export const scraping = async ({
       const current_url = window.location.href;
       history.replaceState({}, "", b.url);
       history.replaceState({}, "", current_url);
-      console.log(`${JSON.stringify(bc.getBookMeta())} ${b.title} ${JSON.stringify(pageNumber)}`);
+      console.log(`📖${JSON.stringify(bc.getBookMeta())} ${b.title} ${JSON.stringify(pageNumber)}`);
     }
   });
   addController(controller.view.div);
