@@ -20,7 +20,7 @@
     const comReader = multiBook({
       bookList: query(".bookList a"),
       getBook: async (a) => {
-        const reader = new zip.ZipReader(new zip.HttpReader(a.href, { useRangeHeader: false }));
+        const reader = new zip.ZipReader(new zip.HttpReader(a.href, { useRangeHeader: true, preventHeadRequest: true }));
         const zipEntries = (await reader.getEntries())
           .filter(f => !f.directory && f.filename.endsWith("jpg"))
           .map(async (entry, i) => {
