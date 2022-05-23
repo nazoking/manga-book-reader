@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+
+<body>
+  <script src="https://cdn.jsdelivr.net/npm/@zip.js/zip.js@2.4.11/dist/zip.min.js"></script>
+  <ul class="bookList">
+    <li><a href="./p1.zip">第1話 研修医の夜(1)</a></li>
+    <li><a href="./p2.zip">第1話 研修医の夜(2)</a></li>
+    <li><a href="./p3.zip">第1話 研修医の夜(3)</a></li>
+    <li><a href="./p4.zip">第1話 研修医の夜(4)</a></li>
+  </ul>
+  <dl style="text-align: left;">
+    <dt>タイトル</dt><dd>ブラックジャックによろしく</dd>
+    <dt>著作者名</dt><dd>佐藤秀峰</dd>
+    <dt><a href="https://densho810.com/free/">https://densho810.com/free/</a></dt>
+  </dl>
+  <script type="module">
+    import reader from '../../dist/index.mjs';
+    const { multiBook, query, Book } = reader;
+    const comReader = multiBook({
+      bookList: query(".bookList a"),
+      getBook: async (a) => {
+        const reader = new zip.ZipReader(new zip.HttpReader(a.href, { useRangeHeader: false }));
+        const zipEntries = (await reader.getEntries())
+          .filter(f => !f.directory && f.filename.endsWith("jpg"))
+          .map(async (entry, i) => {
+            const blob = await entry.getData(new zip.BlobWriter("image/jpeg"));
+            return {
+              src: URL.createObjectURL(blob),
+            };
+          });
+        return Book(zipEntries);
+      },
+      getName: (a) => a.innerText,
+    });
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      document.body.appendChild(comReader.controller.view.div);
+      comReader.action.move(1, -1);
+    });
+  </script>
+</body>
+
+</html>
