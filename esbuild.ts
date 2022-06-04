@@ -21,7 +21,7 @@ const embedCss = ({tmpDir, minify}:{ tmpDir: string, minify: boolean }) => {
             bundle: true,
             minify,
             loader: {
-              '.svg': 'text',
+              '.svg': 'dataurl',
               '.css': 'css',
             },
           });
@@ -60,7 +60,6 @@ async function main(tmpDir: string){
     format: "esm",
     loader: {
       '.html': 'text',
-      '.svg': 'text',
     },
     minify,
     plugins:[
