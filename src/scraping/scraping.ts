@@ -32,7 +32,7 @@ const toGetter = (getterable: Getterable) => async (doc: Document) => {
   if (typeof getterable == 'string') {
     return inferPages(query(getterable, doc));
   }
-  if (typeof getterable == 'string' || typeof getterable == 'object') {
+  if (typeof getterable == 'object') {
     return inferPages(getterable);
   }
   return inferPages(await getterable(doc));
