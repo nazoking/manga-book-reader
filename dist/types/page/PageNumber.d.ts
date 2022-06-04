@@ -1,4 +1,7 @@
-/** ページ番号。-1 なら最初のページを左に表示。last なら、最後から lastページ目。 */
+/** page number.
+ *
+ * if number is -1, right page is blank, and left page is first page.
+ * If the value is an object, `last: 0` makes the left page 0 page. */
 export declare type PageNumber = number | {
     last: number;
 };

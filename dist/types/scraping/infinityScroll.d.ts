@@ -1,11 +1,11 @@
 export interface InfinityScroll {
-    /** ナビゲーションの位置。xpath か css-selector */
+    /** navigation. xpath or css-selector */
     nav: string;
-    /** ナビゲーションから次ページ a タグの位置。xpath か css-selector */
+    /** A tag that indicate next page. position from navigation element. xpath or css-selector */
     next: string;
-    /** 次ページ dom から コンテンツエリアの位置。xpath か css-selector */
+    /** contents area from next page dom. xpath or css-selector */
     contents: string;
-    /** つぎ足す前にコンテンツに何かする場合 */
+    /** event handler on load next page dom. you can modified next page dom */
     onLoad?: (document: DocumentFragment) => void;
 }
 export declare function appendNextPage(url: string, nav: HTMLElement, config: InfinityScroll): Promise<void>;

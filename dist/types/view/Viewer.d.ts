@@ -13,11 +13,11 @@ export declare class Viewer {
     private zoom?;
     readonly onChanged: EventEmitter<SpreadPages>;
     constructor(div?: HTMLElement);
-    /** DrawHandler は、ジェスチャ（ドラッグしながら一定距離動く）をハンドリングする */
+    /** DrawHandler handles gestures (moving a certain distance while dragging) */
     setDrawHandler(drawHandler: EventHandler<string>): void;
-    /** クリックハンドラは、エレメントをクリックすることで発生するイベントをハンドリングする */
+    /** Click handlers handle events that occur when you click on an element */
     setClickHandler(clickHandler: EventHandler<Element>): void;
-    /** キーハンドラはキーボードイベントをハンドリングする */
+    /** Key handlers handle keyboard events */
     setKeyHandler(keyHandler: EventHandler<KeyEvent>): void;
     toggleControllers(): void;
     showControllers(): void;

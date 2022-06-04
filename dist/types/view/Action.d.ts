@@ -1,16 +1,16 @@
 export interface Action extends Action.Seed {
     action(): void;
     isEnable: () => Promise<boolean>;
-    /** この action が disabled なら next を実行する action を生成 */
+    /** generate an action that executes next If this action is disabled, */
     or(next: Action.Able): Action;
 }
 export declare module Action {
-    /** 基本的な action */
+    /** action seed */
     interface Seed {
         action(): void;
         isEnable?: () => Promise<boolean>;
     }
-    /** action になり得るもの */
+    /** What can be an action */
     type Able = Seed | null | undefined | (() => void);
 }
 export declare const Action: {
