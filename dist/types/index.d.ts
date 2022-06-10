@@ -15,12 +15,28 @@ declare const _default: {
         action: BookLoadAction<BookMeta>;
     };
     preLoadImageList: (srcList: string[] | undefined) => Promise<void>;
-    scraiping: ({ pageList, bookList, addController, bookmarker, viewerDom, }: {
-        bookList: {
-            url: string;
-            title: string;
-        }[] | undefined;
-        pageList: string | (string[] | Node[]) | ((doc: Document) => string[] | Node[]) | ((doc: Document) => Promise<string[] | Node[]>);
+    scraiping: <BookMeta_1 extends {
+        title: string;
+        url: string;
+    }>({ pageList, bookList, addController, bookmarker, viewerDom, }: {
+        bookList: BookMeta_1[] | undefined;
+        pageList: (string | (Node[] | string[]) | ((doc: Document) => Node[] | string[]) | ((doc: Document) => Promise<Node[] | string[]>)) | {
+            loadDom?: ((arg: {
+                url: string;
+            }) => Promise<Document>) | undefined;
+            parseDom: string | (Node[] | string[]) | ((doc: Document) => Node[] | string[]) | ((doc: Document) => Promise<Node[] | string[]>);
+            postParse?: ((arg: {
+                pageList: string[];
+                dom: Document;
+                book: {
+                    url: string;
+                };
+            }) => Promise<void>) | undefined;
+        } | {
+            loadBookPageList: (arg: {
+                url: string;
+            }) => Promise<string[]>;
+        };
         addController?: ((div: HTMLElement) => void) | undefined;
         bookmarker?: import("./scraping/Storage").Storage<import("./scraping/Bookmark").Bookmark> | undefined;
         viewerDom?: HTMLElement | undefined;
@@ -29,10 +45,7 @@ declare const _default: {
         action?: undefined;
     } | {
         controller: ActionController;
-        action: BookLoadAction<{
-            url: string;
-            title: string;
-        }>;
+        action: BookLoadAction<BookMeta_1>;
     } | undefined>;
     infinityScroll: typeof infinityScroll;
     query: (<T extends Node>(selector: `/${string}`, contextNode?: Node | undefined) => T[]) & (<T_1 extends Element>(selector: string, contextNode?: ParentNode | undefined) => T_1[]) & {
