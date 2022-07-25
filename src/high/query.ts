@@ -1,10 +1,11 @@
 type Query = (
-  (<T extends Node> (selector: `/${string}`, contextNode?: Node) => Array<T>) &
+  (<T extends Node> (selector: XPath, contextNode?: Node) => Array<T>) &
   (<T extends Element> (selector: string, contextNode?: ParentNode) => Array<T>)
 ) & {
   context: (contextNode: Node | ParentNode) => (selector: string) => Node[];
 };
-function isXPath(selector: string): selector is `/${string}`{
+type XPath = `/${string}`
+function isXPath(selector: string): selector is XPath{
   return selector.startsWith("/");
 }
 /** select dom. selector is css-selector or xpath */
