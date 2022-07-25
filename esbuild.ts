@@ -61,6 +61,7 @@ async function main(tmpDir: string){
     loader: {
       '.html': 'text',
     },
+    watch: process.env.WATCH == "1",
     minify,
     plugins:[
       embedCss({minify, tmpDir}),

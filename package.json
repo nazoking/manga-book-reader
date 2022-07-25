@@ -5,13 +5,13 @@
   "main": "index.js",
   "types": "./dist/types/index.d.ts",
   "scripts": {
-    "build": "tsc --emitDeclarationOnly && node --require esbuild-register esbuild",
-    "tsc": "tsc",
-    "esbuild": "esbuild",
+    "build": "tsc --emitDeclarationOnly && npm run esbuild",
+    "esbuild": "node --require esbuild-register esbuild.ts",
+    "esbuild:watch": "WATCH=1 npm run esbuild",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "exports": {
-    "import":"./dist/index.mjs"
+    "import": "./dist/index.mjs"
   },
   "author": "",
   "license": "MIT",
