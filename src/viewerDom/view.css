@@ -1,17 +1,21 @@
-:host {
+:host{
   background: #333;
+  z-index: 2147483647;
+  width: 500px;
+  height: 300px;
+  border: 1px solid gray;
+}
+:host > div{
   position: relative;
   margin: 0;
   user-select: none;
-  width: 500px;
-  height: 300px;
   color: black;
   overflow: hidden;
   touch-action: none;
-  z-index: 2147483647;
-  border: 1px solid gray;
   display: flex;
   flex-direction: column;
+  height: 100%;
+  width: 100%;
 }
 :fullscreen {
   touch-action: none;
