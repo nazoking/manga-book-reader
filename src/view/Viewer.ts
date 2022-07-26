@@ -24,9 +24,9 @@ export class Viewer {
   inner: HTMLElement;
   constructor(div: HTMLElement = viewerDom()) {
     this.wrapper = div.ownerDocument.createElement('div');
-    this.wrapper.tabIndex = 0;
     this.root = this.wrapper.attachShadow({mode: "closed"});
     this.root.appendChild(div);  
+    div.tabIndex = 0;
     this.inner = div;
     this.rightPage = this.root.querySelector<HTMLElement>(".right-page")!;
     this.leftPage = this.root.querySelector<HTMLElement>(".left-page")!;
