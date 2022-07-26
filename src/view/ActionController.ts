@@ -130,7 +130,7 @@ export class ActionController {
     this.view.setCurrent(this.current);
     Object.entries(this.clicks).forEach(async ([selector, a]) => {
       const action = this.getAction(a);
-      const elements = this.view.div.querySelectorAll(selector);
+      const elements = this.view.root.querySelectorAll(selector);
       if (elements.length) {
         const disabled = action ? !(await action.isEnable()) : true;
         Array.from(elements).forEach((elem) => {

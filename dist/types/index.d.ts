@@ -20,11 +20,11 @@ declare const _default: {
         url: string;
     }>({ pageList, bookList, addController, bookmarker, viewerDom, }: {
         bookList: BookMeta_1[] | undefined;
-        pageList: (string | (Node[] | string[]) | ((doc: Document) => Node[] | string[]) | ((doc: Document) => Promise<Node[] | string[]>)) | {
+        pageList: (string | (string[] | Node[]) | ((doc: Document) => string[] | Node[]) | ((doc: Document) => Promise<string[] | Node[]>)) | {
             loadDom?: ((arg: {
                 url: string;
             }) => Promise<Document>) | undefined;
-            parseDom: string | (Node[] | string[]) | ((doc: Document) => Node[] | string[]) | ((doc: Document) => Promise<Node[] | string[]>);
+            parseDom: string | (string[] | Node[]) | ((doc: Document) => string[] | Node[]) | ((doc: Document) => Promise<string[] | Node[]>);
             postParse?: ((arg: {
                 pageList: string[];
                 dom: Document;

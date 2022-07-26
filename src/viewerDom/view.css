@@ -1,4 +1,4 @@
-#id {
+:host {
   background: #333;
   position: relative;
   margin: 0;
@@ -13,51 +13,51 @@
   display: flex;
   flex-direction: column;
 }
-#id:fullscreen {
+:fullscreen {
   touch-action: none;
   border: none;
 }
 
 /* ---- controller ---- */
 
-#id:fullscreen.show-controllers .controller {
+:fullscreen.show-controllers .controller {
   opacity: 0.5;
 }
-#id:fullscreen.show-controllers .controller:hover {
+:fullscreen.show-controllers .controller:hover {
   opacity: 0.9;
 }
-#id:fullscreen .controller {
+:fullscreen .controller {
   opacity: 0;
 }
 
-#id .controller * {
+ .controller * {
   pointer-events: none;
 }
-#id.show-controllers .controller * {
+.show-controllers .controller * {
   pointer-events: auto;
 }
-#id button {
+ button {
   font-family: "Segoe UI Emoji";
   color: #333333;
   background: #cccccc;
   cursor: pointer;
   border: 1px outset;
 }
-#id button.disabled {
+ button.disabled {
   cursor: default;
   opacity: 0.4;
 }
-#id button.controller.disabled {
+ button.controller.disabled {
   opacity: 0;
 }
-#id.show-controllers button.controller.disabled:hover {
+.show-controllers button.controller.disabled:hover {
   opacity: 0.2;
   cursor: default;
 }
 
 /* ---- info ---- */
 
-#id .info {
+ .info {
   background: white;
   position: relative;
   top: 0;
@@ -69,49 +69,49 @@
   gap: 10px;
   z-index: 1;
 }
-#id:fullscreen .info {
+:fullscreen .info {
   position: absolute;
 }
-#id .info .book-title select{
+ .info .book-title select{
   user-select: text;
   justify-content: flex-start;
   border: none;
   appearance:none;
   padding: 5px 0;
 }
-#id:fullscreen .info .book-title select{
+:fullscreen .info .book-title select{
   padding: 10px 0;
 }
-#id .info .info-ctrl {
+ .info .info-ctrl {
   display: flex;
   justify-content: space-evenly;
 }
-#id .info .view-ctrl {
+ .info .view-ctrl {
   display: flex;
   justify-content: flex-end;
 }
-#id .info .book-title {
+ .info .book-title {
   flex-grow: 1;
 }
 
-#id .info button {
+ .info button {
   padding: 5px 15px;
 }
-#id:fullscreen .info button {
+:fullscreen .info button {
   padding: 10px 35px;
 }
 
-#id .info button {
+ .info button {
   line-height: 18px;
   height: 100%;
 }
-#id .info .info-title {
+ .info .info-title {
   padding-right: 15px;
 }
 
 /* ---- pages ---- */
 
-#id .pages {
+ .pages {
   position: relative;
   top: 0;
   bottom: 0;
@@ -123,35 +123,35 @@
   padding: 0;
   margin: 0;
 }
-#id:fullscreen .pages {
+:fullscreen .pages {
   position: absolute;
 }
 
-#id.show-controllers .pages {
+.show-controllers .pages {
   cursor:auto;
 }
-#id .page {
+ .page {
   width: 50%;
   float: left;
   height: 100%;
   padding: 0;
   margin: 0;
 }
-#id .img {
+ .img {
   width: 100%;
   height: 100%;
   background-repeat: no-repeat;
   background-size: contain;
   background-position-y: center;
 }
-#id .img.broken-image {
+ .img.broken-image {
   background-image: url(broken.svg) !important;
   background-size: 40%;
 }
-#id .img.no-image {
+ .img.no-image {
   background-image: linear-gradient( 45deg , black, #888) !important;
 }
-#id .img.loading-image {
+ .img.loading-image {
   animation: loading 0.5s ease-in alternate infinite;
 }
 @keyframes loading {
@@ -159,33 +159,33 @@
   100% { background-color: #888; }
 }
 
-#id .left-page {
+ .left-page {
   background-position-x: right;
 }
-#id .right-page {
+ .right-page {
   background-position-x: left;
 }
-#id.single .left.page {
+.single .left.page {
   display: none;
 }
-#id.single .right.page {
+.single .right.page {
   width: 100%;
 }
-#id.single .right-page {
+.single .right-page {
   background-position-x: center;
 }
 
 /* ---- move-button ---- */
 
-#id .move-button {
+ .move-button {
   position: absolute;
   font-size: 40px;
   height: 80%;
   top: 10%;
 }
-#id .left-button {
+ .left-button {
   left: 60px;
 }
-#id .right-button {
+ .right-button {
   right: 60px;
 }

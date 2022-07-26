@@ -122,7 +122,7 @@ export const scraping = async <BookMeta extends { title: string, url: string }>(
     if (pages.length) {
       const book = Book(pages.map(async (src) => ({ src })));
       const controller = new ActionController(new Viewer(viewerDom), book.getSpreadPages(-1), {});
-      addController(controller.view.div);
+      addController(controller.view.wrapper);
       return {
         controller,
       }
@@ -155,7 +155,7 @@ export const scraping = async <BookMeta extends { title: string, url: string }>(
       console.log(`📖${JSON.stringify(bc.getBookMeta())} ${b.title} ${JSON.stringify(pageNumber)}`);
     }
   });
-  addController(controller.view.div);
+  addController(controller.view.wrapper);
   action.move(bookNumber, -1);
   return {
     controller,

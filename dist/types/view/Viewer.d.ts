@@ -3,7 +3,6 @@ import { EventHandler } from "./event/EventHandler";
 import { KeyEvent } from "./event/KeyEvent";
 import { EventEmitter } from "./event/Emitter";
 export declare class Viewer {
-    readonly div: HTMLElement;
     readonly rightPage: HTMLElement;
     readonly leftPage: HTMLElement;
     readonly pages: HTMLElement;
@@ -12,6 +11,9 @@ export declare class Viewer {
     private infoTimer;
     private zoom?;
     readonly onChanged: EventEmitter<SpreadPages>;
+    wrapper: HTMLElement;
+    root: ShadowRoot;
+    inner: HTMLElement;
     constructor(div?: HTMLElement);
     /** DrawHandler handles gestures (moving a certain distance while dragging) */
     setDrawHandler(drawHandler: EventHandler<string>): void;
