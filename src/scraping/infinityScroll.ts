@@ -16,7 +16,7 @@ export async function appendNextPage(url:string, nav:HTMLElement, config: Infini
   const f = await fetch(url).then(a => a.text()).then(a => new DOMParser().parseFromString(a,"text/html"));
   const nextNav = query(config.nav, f)[0];
   if(!nextNav){ console.log(`📖not found nav ${config.nav} in next page ${url}`); return; }
-  const contents = f.querySelector(config.contents);
+  const contents = query(config.contents, f)[0];
   if(!contents){ console.log(`📖not found contents ${config.contents} in next page ${url}`); return; }
   let frag = document.createDocumentFragment();
   frag.appendChild(contents);
