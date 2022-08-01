@@ -37,5 +37,7 @@ export class BookLoadAction<T> {
     this.bookController = bookNumber;
     this.setHandler(this.bookController, pageNumber);
   }
-
+  getBookController(){
+    return this.bookController;
+  }
 }

@@ -24,8 +24,8 @@ export interface MultiBook<BookMeta> {
   readonly bookList: Array<BookMeta>,
   readonly getBook: (book: BookMeta, index: number, array: Array<BookMeta>) => Promise<Book>,
   readonly getName?: (book: BookMeta, index: number, array: Array<BookMeta>) => string,
-  readonly onBookChanged?: (bc: BookController<BookMeta>, pageNumber: PageNumber) => void,
-  readonly onPageChanged?: (page: SpreadPages) => void,
+  readonly onBookChanged?: (arg:{page: PageNumber, book: BookMeta}) => void,
+  readonly onPageChanged?: (arg:{page: number, book: BookMeta}) => void,
   readonly dummyPage?: SpreadPages,
   readonly getBookSelector?: (g:BookSelectorSeed<BookMeta>) => HTMLElement | string,
   readonly viewerDom?: HTMLElement,
@@ -67,14 +67,16 @@ export const multiBook = <BookMeta>({
     controller.setCurrent(Promise.resolve(dummyPage));
     selectHandler.trigger({ controller: bc, bookIndex: bookList.findIndex(l => l == bc.getBookMeta()) });
     controller.setCurrent(bc.getSpreadPages(pageNumber));
-    onBookChanged(bc, pageNumber);
+    onBookChanged({book:bc.getBookMeta(), page:pageNumber});
   }));
   const controller = new ActionController(
     new Viewer(viewerDom),
     dummyPage,
     action.actions(),
   );
-  controller.view.onChanged.add(onPageChanged);
+  controller.view.onChanged.add((page) => {
+    onPageChanged({page:page.pageNumber(), book: action.getBookController().getBookMeta()})
+  });
   controller.view.setTitle(getBookSelector({bookList, action, onBookChanged:selectHandler }));
   return { controller, action }
 }

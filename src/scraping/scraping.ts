@@ -112,6 +112,7 @@ export const scraping = async <BookMeta extends { title: string, url: string }>(
   bookmarker?: Storage<Bookmark>,
   viewerDom?: HTMLElement,
 }) => {
+  let bookPageLoader: BookPageLoader;
   if (!bookList || bookList.length == 0) {
     console.log("📖bookList not found");
     if (isBookPageLoader(pageList)) {
@@ -119,21 +120,26 @@ export const scraping = async <BookMeta extends { title: string, url: string }>(
       return;
     }
     const pages = await toDomPageLoader(pageList).parseDom(document);
-    if (pages.length) {
-      const book = Book(pages.map(async (src) => ({ src })));
-      const controller = new ActionController(new Viewer(viewerDom), book.getSpreadPages(-1), {});
-      addController(controller.view.wrapper);
-      return {
-        controller,
-      }
+    if (!pages.length) {
+      console.log("📖pageList not found");
+      return;
     }
-    console.log("📖pageList not found");
-    return;
+    bookPageLoader = {
+      loadBookPageList: async () => pages,
+    };
+    bookList = [
+      {
+        title: document.title,
+        url: location.href,
+      } as BookMeta,
+    ];
+  }else{
+    bookPageLoader = toBookPageLoader(pageList);
   }
-  const bookPageLoader = toBookPageLoader(pageList);
   const bookmark = await bookmarker.read();
   let bookNumber = Math.max(bookList.findIndex((c) => c.title == bookmark?.title), 0);
-  console.log("📖start ", bookmark, bookNumber, bookList);
+  let pageNumber = bookmark?.page ?? -1;
+  console.log("📖start ", bookmark, bookNumber, bookList, pageNumber);
   const { controller, action } = multiBook({
     bookList,
     viewerDom,
@@ -144,19 +150,21 @@ export const scraping = async <BookMeta extends { title: string, url: string }>(
       return Book(pageList.map(async (src) => ({ src })));
     },
     getName: (b) => b.title,
-    onBookChanged: (bc, pageNumber) => {
-      const b = bc.getBookMeta();
-      bookmarker.write({
-        title: b.title,
-      });
+    onBookChanged: ({book}) => {
       const current_url = window.location.href;
-      history.replaceState({}, "", b.url);
+      history.replaceState({}, "", book.url);
       history.replaceState({}, "", current_url);
-      console.log(`📖${JSON.stringify(bc.getBookMeta())} ${b.title} ${JSON.stringify(pageNumber)}`);
+    },
+    onPageChanged({page, book}){
+      bookmarker.write({
+        title: book.title,
+        page,
+      });
+      console.log(`📖open ${book.title}(${page})`)
     }
   });
   addController(controller.view.wrapper);
-  action.move(bookNumber, -1);
+  action.move(bookNumber, pageNumber);
   return {
     controller,
     action,
