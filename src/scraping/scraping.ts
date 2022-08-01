@@ -5,8 +5,6 @@ import { CookieStorage } from "./CookieStorage";
 import { Bookmark } from "./Bookmark";
 import { Storage } from "./Storage";
 import { viewerDom as defaultViewerDom } from '../viewerDom';
-import { ActionController } from '../view/ActionController';
-import { Viewer } from '../view/Viewer';
 import { query } from '../high/query';
 
 function isNodeArray(u: Array<Node> | Array<string>): u is Array<Node> {
@@ -99,16 +97,13 @@ const toBookPageLoader = (pageList: Getterable | DomPageLoaderA | BookPageLoader
 export const scraping = async <BookMeta extends { title: string, url: string }>({
   pageList,
   bookList = undefined,
-  addController = (div: HTMLElement) => {
-    document.body.prepend(div);
-    setTimeout(() => div.focus());
-  },
+  addController = undefined,
   bookmarker = new CookieStorage(),
   viewerDom = defaultViewerDom(),
 }: {
   bookList: BookMeta[] | undefined;
   pageList: Getterable | BookPageLoader | DomPageLoaderA;
-  addController?: (div: HTMLElement) => void;
+  addController?: string | HTMLElement | ((div: HTMLElement) => void);
   bookmarker?: Storage<Bookmark>,
   viewerDom?: HTMLElement,
 }) => {
@@ -163,10 +158,23 @@ export const scraping = async <BookMeta extends { title: string, url: string }>(
       console.log(`📖open ${book.title}(${page})`)
     }
   });
-  addController(controller.view.wrapper);
+  doAddController(controller.view.wrapper, addController);
   action.move(bookNumber, pageNumber);
   return {
     controller,
     action,
   };
 }
+function doAddController(div: HTMLElement, add:undefined | Element | string | ((div: HTMLElement) => void)){
+  if(!add){
+    doAddController(div, document.body);
+ }else if(typeof add == 'string'){
+    doAddController(div, query(add, document)[0] || document.body);
+  }else if(typeof add == 'function'){
+    add(div);
+  }else {
+    add.prepend(div);
+    setTimeout(() => div.focus());
+  }
+}
+
