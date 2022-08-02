@@ -9,5 +9,6 @@ export declare class BookLoadAction<T> {
         [key: string]: Action.Able;
     };
     move(bookNumber: number | BookController<T>, pageNumber: PageNumber): void;
+    getBookController(): BookController<T>;
 }
 //# sourceMappingURL=BookLoadAction.d.ts.map

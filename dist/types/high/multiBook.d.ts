@@ -18,8 +18,14 @@ export interface MultiBook<BookMeta> {
     readonly bookList: Array<BookMeta>;
     readonly getBook: (book: BookMeta, index: number, array: Array<BookMeta>) => Promise<Book>;
     readonly getName?: (book: BookMeta, index: number, array: Array<BookMeta>) => string;
-    readonly onBookChanged?: (bc: BookController<BookMeta>, pageNumber: PageNumber) => void;
-    readonly onPageChanged?: (page: SpreadPages) => void;
+    readonly onBookChanged?: (arg: {
+        page: PageNumber;
+        book: BookMeta;
+    }) => void;
+    readonly onPageChanged?: (arg: {
+        page: number;
+        book: BookMeta;
+    }) => void;
     readonly dummyPage?: SpreadPages;
     readonly getBookSelector?: (g: BookSelectorSeed<BookMeta>) => HTMLElement | string;
     readonly viewerDom?: HTMLElement;

@@ -3,23 +3,21 @@ import { Bookmark } from './Bookmark';
 
 
 export class CookieStorage implements Storage<Bookmark> {
+  constructor(private name: string = "bookmark"){}
   write(book: Bookmark) {
-    document.cookie = `lastchap=${escape(book.title)}; max-age=31536000; samesite`;
-    if (typeof book.page === "number") {
-      document.cookie = `page=${book.page}; max-age=31536000; samesite`;
-    }
+    document.cookie = `${this.name}=${encodeURIComponent(JSON.stringify(book))}; path=${document.location.href}; max-age=31536000; samesite`;
     return Promise.resolve();
   }
   read() {
-    const c = new Map(document.cookie.split(/; /).map(a => a.split('=', 2) as [string, string]));
-    const title = c.get("lastchap");
-    let ret: Bookmark | null = null;
-    if (title) {
-      ret = { title: unescape(title) };
-      const page = c.get("page");
-      if (page)
-        ret.page = (page as any) * 1;
+    const cookies = new Map(document.cookie.split(/; /).map(a => a.split('=', 2) as [string, string]));
+    const value = cookies.get(this.name);
+    if (value){
+      try{
+        const json = JSON.parse(decodeURIComponent(value));
+        return Promise.resolve(json as Bookmark);
+      }catch(e){
+      }
     }
-    return Promise.resolve(ret);
+    return Promise.resolve(null);
   }
 }

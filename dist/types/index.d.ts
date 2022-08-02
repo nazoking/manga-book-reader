@@ -37,13 +37,10 @@ declare const _default: {
                 url: string;
             }) => Promise<string[]>;
         };
-        addController?: ((div: HTMLElement) => void) | undefined;
+        addController?: string | HTMLElement | ((div: HTMLElement) => void) | undefined;
         bookmarker?: import("./scraping/Storage").Storage<import("./scraping/Bookmark").Bookmark> | undefined;
         viewerDom?: HTMLElement | undefined;
     }) => Promise<{
-        controller: ActionController;
-        action?: undefined;
-    } | {
         controller: ActionController;
         action: BookLoadAction<BookMeta_1>;
     } | undefined>;
