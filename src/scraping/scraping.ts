@@ -132,8 +132,9 @@ export const scraping = async <BookMeta extends { title: string, url: string }>(
     bookPageLoader = toBookPageLoader(pageList);
   }
   const bookmark = await bookmarker.read();
-  let bookNumber = Math.max(bookList.findIndex((c) => c.title == bookmark?.title), 0);
-  let pageNumber = bookmark?.page ?? -1;
+  const r = bookList.findIndex((c) => c.title == bookmark?.title);
+  let bookNumber = Math.max(r, 0);
+  let pageNumber = (r !== -1 ? bookmark?.page : -1) ?? -1;
   console.log("📖start ", bookmark, bookNumber, bookList, pageNumber);
   const { controller, action } = multiBook({
     bookList,

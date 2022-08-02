@@ -5,7 +5,7 @@ import { Bookmark } from './Bookmark';
 export class CookieStorage implements Storage<Bookmark> {
   constructor(private name: string = "bookmark"){}
   write(book: Bookmark) {
-    document.cookie = `${this.name}=${encodeURIComponent(JSON.stringify(book))}; path=${document.location.href}; max-age=31536000; samesite`;
+    document.cookie = `${this.name}=${encodeURIComponent(JSON.stringify(book))}; path=${document.location.pathname}; max-age=31536000; samesite`;
     return Promise.resolve();
   }
   read() {
