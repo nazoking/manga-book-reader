@@ -1,11 +1,11 @@
-:host{
+:host {
   background: #333;
   z-index: 2147483647;
   width: 500px;
   height: 300px;
   border: 1px solid gray;
 }
-:host > div{
+:host > div {
   position: relative;
   margin: 0;
   user-select: none;
@@ -34,24 +34,24 @@
   opacity: 0;
 }
 
- .controller * {
+.controller * {
   pointer-events: none;
 }
 .show-controllers .controller * {
   pointer-events: auto;
 }
- button {
+button {
   font-family: "Segoe UI Emoji";
   color: #333333;
   background: #cccccc;
   cursor: pointer;
   border: 1px outset;
 }
- button.disabled {
+button.disabled {
   cursor: default;
   opacity: 0.4;
 }
- button.controller.disabled {
+button.controller.disabled {
   opacity: 0;
 }
 .show-controllers button.controller.disabled:hover {
@@ -61,7 +61,7 @@
 
 /* ---- info ---- */
 
- .info {
+.info {
   background: white;
   position: relative;
   top: 0;
@@ -76,53 +76,53 @@
 :fullscreen .info {
   position: absolute;
 }
- .info .book-title select{
+.info .book-title select {
   user-select: text;
   justify-content: flex-start;
   border: none;
-  appearance:none;
+  appearance: none;
   padding: 5px 0;
 }
-:fullscreen .info .book-title select{
+:fullscreen .info .book-title select {
   padding: 10px 0;
 }
- .info .info-ctrl {
+.info .info-ctrl {
   display: flex;
   justify-content: space-evenly;
 }
- .info .view-ctrl {
+.info .view-ctrl {
   display: flex;
   justify-content: flex-end;
 }
- .info .book-title {
+.info .book-title {
   flex-grow: 1;
 }
 
- .info button {
+.info button {
   padding: 5px 15px;
 }
 :fullscreen .info button {
   padding: 10px 35px;
 }
 
- .info button {
+.info button {
   line-height: 18px;
   height: 100%;
 }
- .info .info-title {
+.info .info-title {
   padding-right: 15px;
 }
 
 /* ---- pages ---- */
 
- .pages {
+.pages {
   position: relative;
   top: 0;
   bottom: 0;
   left: 0;
   right: 0;
   transform-origin: 0 0;
-  cursor:none;
+  cursor: none;
   flex-grow: 1;
   padding: 0;
   margin: 0;
@@ -132,41 +132,45 @@
 }
 
 .show-controllers .pages {
-  cursor:auto;
+  cursor: auto;
 }
- .page {
+.page {
   width: 50%;
   float: left;
   height: 100%;
   padding: 0;
   margin: 0;
 }
- .img {
+.img {
   width: 100%;
   height: 100%;
   background-repeat: no-repeat;
   background-size: contain;
   background-position-y: center;
 }
- .img.broken-image {
+.img.broken-image {
   background-image: url(broken.svg) !important;
   background-size: 40%;
 }
- .img.no-image {
-  background-image: linear-gradient( 45deg , black, #888) !important;
+.img.no-image {
+  background-image: linear-gradient(45deg, black, #888) !important;
 }
- .img.loading-image {
+.img.loading-image {
   animation: loading 0.5s ease-in alternate infinite;
 }
 @keyframes loading {
-  0% { background-color: #333; }
-  100% { background-color: #888; }
+  0% {
+    background-color: #333;
+  }
+  100% {
+    background-color: #888;
+  }
 }
 
- .left-page {
+.left-page {
   background-position-x: right;
 }
- .right-page {
+.right-page {
   background-position-x: left;
 }
 .single .left.page {
@@ -181,15 +185,15 @@
 
 /* ---- move-button ---- */
 
- .move-button {
+.move-button {
   position: absolute;
   font-size: 40px;
   height: 80%;
   top: 10%;
 }
- .left-button {
+.left-button {
   left: 60px;
 }
- .right-button {
+.right-button {
   right: 60px;
 }

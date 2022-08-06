@@ -28,16 +28,18 @@ export class ActionController {
   };
   readonly actions: { [key: string]: Action } = {};
   readonly draws: { [key: string]: string | Action.Seed } = {
-    "up": "toggleFullscreen",
-    "left": "nextPageOrBook",
-    "right": "prevPageOrBook",
+    up: "toggleFullscreen",
+    left: "nextPageOrBook",
+    right: "prevPageOrBook",
     "left-right": "nextHalf",
     "right-left": "prevHalf",
     "left-up": "nextBook",
     "left-down": "prevBook",
-    "down": "zoomReset",
+    down: "zoomReset",
   };
-  private static defaultActions(c: ActionController):{ [key: string]: Action.Able }{
+  private static defaultActions(c: ActionController): {
+    [key: string]: Action.Able;
+  } {
     return {
       nextPage: {
         action: () => c.setCurrent(c.current.nextPage()),
@@ -50,19 +52,26 @@ export class ActionController {
       nextHalf: () => c.setCurrent(c.current.move(+1)),
       prevHalf: () => c.setCurrent(c.current.move(-1)),
       fullscreen: {
-        action:() => c.view.fullScreen = true,
+        action: () => (c.view.fullScreen = true),
         isEnable: async () => !c.view.fullScreen,
       },
-      exitFullscreen: () => c.view.fullScreen = false,
-      toggleFullscreen: () => c.doAction(c.view.fullScreen ? "exitFullscreen" : "fullscreen"),
-      nextPageOrBook: Action.lazy(() => Action.wrap(c.actions['nextPage']).or(c.actions['nextBook'])),
-      prevPageOrBook: Action.lazy(() => Action.wrap(c.actions['prevPage']).or(c.actions['prevBookLast'])),
+      exitFullscreen: () => (c.view.fullScreen = false),
+      toggleFullscreen: () =>
+        c.doAction(c.view.fullScreen ? "exitFullscreen" : "fullscreen"),
+      nextPageOrBook: Action.lazy(() =>
+        Action.wrap(c.actions["nextPage"]).or(c.actions["nextBook"])
+      ),
+      prevPageOrBook: Action.lazy(() =>
+        Action.wrap(c.actions["prevPage"]).or(c.actions["prevBookLast"])
+      ),
       firstPage: {
         action: () => c.current.move(-1),
         isEnable: async () => c.current.pageNumber() != -1,
       },
-      firstPageOrPrevBook: Action.lazy(() => Action.wrap(c.actions['firstPage']).or(c.actions['prevBook'])),
-      zoomReset: () => c.view.zoomReset()
+      firstPageOrPrevBook: Action.lazy(() =>
+        Action.wrap(c.actions["firstPage"]).or(c.actions["prevBook"])
+      ),
+      zoomReset: () => c.view.zoomReset(),
     };
   }
 
@@ -70,9 +79,11 @@ export class ActionController {
     public readonly view: Viewer,
     public current: SpreadPages,
     actions?: { [key: string]: Action.Able },
-    defaultActions?: (this:ActionController) => { [key: string]: Action.Able },
+    defaultActions?: (this: ActionController) => { [key: string]: Action.Able }
   ) {
-    this.addActions((defaultActions || ActionController.defaultActions).call(null, this));
+    this.addActions(
+      (defaultActions || ActionController.defaultActions).call(null, this)
+    );
     view.setClickHandler((element: Element) => {
       const key = Object.keys(this.clicks).find((selector) =>
         element.matches(selector)
@@ -93,21 +104,21 @@ export class ActionController {
         this.doAction(this.draws[key]);
         return true;
       }
-    })
-    if(actions){
+    });
+    if (actions) {
       this.addActions(actions);
     }
     this.setCurrent(Promise.resolve(current));
   }
-  addActions(actions: {[key: string]: Action.Able}){
-    Object.entries(actions).forEach(([name, action]) => this.addAction(name, action));
+  addActions(actions: { [key: string]: Action.Able }) {
+    Object.entries(actions).forEach(([name, action]) =>
+      this.addAction(name, action)
+    );
   }
-  addAction(name:string, action: Action.Able){
+  addAction(name: string, action: Action.Able) {
     this.actions[name] = Action.wrap(action);
   }
-  getAction(
-    action: string | Action.Able
-  ): Action | undefined {
+  getAction(action: string | Action.Able): Action | undefined {
     if (action) {
       if (typeof action == "string") {
         return this.getAction(this.actions[action]);

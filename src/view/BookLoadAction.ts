@@ -6,9 +6,8 @@ export class BookLoadAction<T> {
   constructor(
     private bookController: BookController<T>,
     public setHandler: (bc: BookController<T>, page: PageNumber) => void
-  ) {
-  }
-  actions(): { [key: string]: Action.Able; } {
+  ) {}
+  actions(): { [key: string]: Action.Able } {
     return {
       nextBook: {
         action: () => {
@@ -31,13 +30,13 @@ export class BookLoadAction<T> {
     };
   }
   move(bookNumber: number | BookController<T>, pageNumber: PageNumber) {
-    if (typeof bookNumber == 'number') {
+    if (typeof bookNumber == "number") {
       bookNumber = this.bookController.goTo(bookNumber);
     }
     this.bookController = bookNumber;
     this.setHandler(this.bookController, pageNumber);
   }
-  getBookController(){
+  getBookController() {
     return this.bookController;
   }
 }

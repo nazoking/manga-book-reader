@@ -4,7 +4,7 @@ export interface Action extends Action.Seed {
   /** generate an action that executes next If this action is disabled, */
   or(next: Action.Able): Action;
 }
-export module Action{
+export namespace Action {
   /** action seed */
   export interface Seed {
     action(): void;
@@ -23,7 +23,7 @@ class Wrapper implements Action {
       this.internal.action();
     }
   }
-  or(other: Action.Able) : Action{
+  or(other: Action.Able): Action {
     if (!other) return this;
     const a1 = Action.wrap(other);
     return new Wrapper({
@@ -39,7 +39,7 @@ class Wrapper implements Action {
   }
 }
 export const Action = {
-  NOP: undefined as any as Action,
+  NOP: undefined as unknown as Action,
   wrap(action: Action.Able): Action {
     if (!action) return Action.NOP;
     if (action instanceof Wrapper) return action;
@@ -47,14 +47,15 @@ export const Action = {
       return new Wrapper({ action: () => action() });
     return new Wrapper(action);
   },
-  isEnable(action: Action.Seed): (() => Promise<boolean>){
-    return ("isEnable" in action) ? (() => action.isEnable!()) : (async () => true)
+  isEnable(action: Action.Seed): () => Promise<boolean> {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    return "isEnable" in action ? () => action.isEnable!() : async () => true;
   },
-  lazy(action: () => Action): Action{
+  lazy(action: () => Action): Action {
     return new Wrapper({
       action: () => action().action(),
       isEnable: () => Action.isEnable(action())(),
     });
-  }
+  },
 };
 Action.NOP = new Wrapper({ action: () => {} });

@@ -1,5 +1,5 @@
 export class EventCache {
-  constructor(private map: Map<number, PointerEvent> = new Map()) { }
+  constructor(private map: Map<number, PointerEvent> = new Map()) {}
   put(ev: PointerEvent): PointerEvent | undefined {
     if (this.map.has(ev.pointerId)) {
       const old = this.map.get(ev.pointerId);

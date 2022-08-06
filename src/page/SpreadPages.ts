@@ -14,9 +14,9 @@ export interface SpreadPages {
   pageNumber(): number;
   canMove(num: number): Promise<boolean>;
   /** right page */
-  image1(): Promise<PageData|null> | null;
+  image1(): Promise<PageData | null> | null;
   /** left page */
-  image2(): Promise<PageData|null> | null;
+  image2(): Promise<PageData | null> | null;
   /** True in double-page spread mode. */
   isSingleUnit(): Promise<boolean>;
 }

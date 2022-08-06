@@ -6,5 +6,5 @@ export class ZoomEvent implements PanZoomEvent {
     public readonly type: string,
     public readonly center: Point,
     public readonly distance: number
-  ) { }
+  ) {}
 }

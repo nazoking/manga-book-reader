@@ -1,7 +1,6 @@
 import { Point } from "./Point";
 import { PanZoomEvent } from "./PanZoomEvent";
 
-
 export class PinchEvent implements PanZoomEvent {
   public readonly center: Point;
   constructor(
@@ -17,7 +16,7 @@ export class PinchEvent implements PanZoomEvent {
   get distance(): number {
     return Math.sqrt(
       Math.pow(this.ev1.screenX - this.ev2.screenX, 2) +
-      Math.pow(this.ev1.screenY - this.ev2.screenY, 2)
+        Math.pow(this.ev1.screenY - this.ev2.screenY, 2)
     );
   }
 }

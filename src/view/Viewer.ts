@@ -8,7 +8,12 @@ import { Zoom } from "./drag/Zoom";
 import { EventEmitter } from "./event/Emitter";
 import { viewerDom } from "../viewerDom";
 
-const PageImageType = ["loading-image", "no-image", "broken-image", "show-image"] as const;
+const PageImageType = [
+  "loading-image",
+  "no-image",
+  "broken-image",
+  "show-image",
+] as const;
 
 export class Viewer {
   readonly rightPage: HTMLElement;
@@ -18,21 +23,28 @@ export class Viewer {
   readonly bookTitle: HTMLElement;
   private infoTimer: number | undefined;
   private zoom?: Zoom;
-  readonly onChanged: EventEmitter<SpreadPages> = new EventEmitter<SpreadPages>();
+  readonly onChanged: EventEmitter<SpreadPages> =
+    new EventEmitter<SpreadPages>();
   wrapper: HTMLElement;
   root: ShadowRoot;
   inner: HTMLElement;
   constructor(div: HTMLElement = viewerDom()) {
-    this.wrapper = div.ownerDocument.createElement('div');
-    this.root = this.wrapper.attachShadow({mode: "closed"});
-    this.root.appendChild(div);  
+    this.wrapper = div.ownerDocument.createElement("div");
+    this.root = this.wrapper.attachShadow({ mode: "closed" });
+    this.root.appendChild(div);
     div.tabIndex = 0;
     this.inner = div;
-    this.rightPage = this.root.querySelector<HTMLElement>(".right-page")!;
-    this.leftPage = this.root.querySelector<HTMLElement>(".left-page")!;
-    this.pages = this.root.querySelector<HTMLElement>(".pages")!;
-    this.info = this.root.querySelector<HTMLElement>(".info")!;
-    this.bookTitle = this.root.querySelector<HTMLElement>(".book-title")!;
+    const elem = (selector: string) => {
+      const ret = this.root.querySelector<HTMLElement>(selector);
+      if (!ret)
+        throw Error(`div has not element "${selector}" ${div.outerHTML}`);
+      return ret;
+    };
+    this.rightPage = elem(".right-page");
+    this.leftPage = elem(".left-page");
+    this.pages = elem(".pages");
+    this.info = elem(".info");
+    this.bookTitle = elem(".book-title");
     this.inner.addEventListener("pointermove", (e) => {
       if (e.pointerType == "touch") return;
       this.showControllers();
@@ -51,7 +63,7 @@ export class Viewer {
       },
       onDraw: (e) => {
         drawHandler(e.gestures.join("-"));
-      }
+      },
     });
     drag.attach(this.inner);
   }
@@ -106,27 +118,30 @@ export class Viewer {
   zoomReset() {
     this.zoom?.reset();
   }
-  get fullScreen(): boolean{
+  get fullScreen(): boolean {
     return !!document.fullscreenElement;
   }
-  set fullScreen(set: boolean){
-    if(set){
+  set fullScreen(set: boolean) {
+    if (set) {
       this.inner.requestFullscreen();
-    }else{
+    } else {
       document.exitFullscreen().then(() => {
         this.inner.focus();
       });
     }
   }
   setTitle(title: string | HTMLElement) {
-    if (typeof title == 'string') {
+    if (typeof title == "string") {
       this.bookTitle.innerText = title;
     } else {
-      this.bookTitle.innerText = '';
+      this.bookTitle.innerText = "";
       this.bookTitle.appendChild(title);
     }
   }
-  private setPageImageType(elm: HTMLElement, type?: typeof PageImageType[number]) {
+  private setPageImageType(
+    elm: HTMLElement,
+    type?: typeof PageImageType[number]
+  ) {
     elm.classList.remove(...PageImageType);
     if (type) elm.classList.add(type);
   }
@@ -137,7 +152,10 @@ export class Viewer {
   async setCurrent(pages: SpreadPages) {
     this.zoomReset();
     this.inner.dataset.pageNumber = `${pages.pageNumber()}`;
-    const set = async (promise: Promise<PageData | null> | null, tag: HTMLElement) => {
+    const set = async (
+      promise: Promise<PageData | null> | null,
+      tag: HTMLElement
+    ) => {
       const data = await promise;
       if (this.inner.dataset.pageNumber != `${pages.pageNumber()}`) return;
       if (!data) {
@@ -147,14 +165,15 @@ export class Viewer {
       } else {
         this.setPageImageType(tag, "loading-image");
         tag.style.backgroundImage = `url("${encodeURI(data.src)}")`;
-        if (typeof data.isWidePage == 'boolean') {
+        if (typeof data.isWidePage == "boolean") {
           this.setPageImageType(tag, "show-image");
           this.setPageTypeSingleUnit(pages.isSingleUnit());
           return;
         }
         try {
-          const img = await loadImage(data.src, ({width, height}) => {
-            if (this.inner.dataset.pageNumber != `${pages.pageNumber()}`) return;
+          await loadImage(data.src, ({ width, height }) => {
+            if (this.inner.dataset.pageNumber != `${pages.pageNumber()}`)
+              return;
             data.isWidePage = height < width;
             this.setPageTypeSingleUnit(pages.isSingleUnit());
           });
@@ -164,7 +183,7 @@ export class Viewer {
           if (this.inner.dataset.pageNumber != `${pages.pageNumber()}`) return;
           this.setPageImageType(tag, "broken-image");
           throw new Error(`can't load ${data.src}`);
-        };
+        }
       }
     };
     await Promise.all([

@@ -8,10 +8,10 @@ import { DrawEvent } from "../drag/DrawEvent";
 import { EventHandler } from "./EventHandler";
 import { EventCache } from "./EventCache";
 
-
 export class DragHandler {
   private evCache: EventCache;
   private dragging: DragGesture | undefined;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private handlers: Array<any> = [
     ["pointerdown", (e: PointerEvent) => this.onPointerDown(e)],
     ["pointermove", (e: PointerEvent) => this.onPointerMove(e)],
@@ -22,19 +22,21 @@ export class DragHandler {
     ["wheel", (e: WheelEvent) => this.onWheel(e)],
   ];
   constructor(
-    private handler:{
-      onPinch: EventHandler<PanZoomEvent>,
-      onDraw: EventHandler<DrawEvent>,
-    },
+    private handler: {
+      onPinch: EventHandler<PanZoomEvent>;
+      onDraw: EventHandler<DrawEvent>;
+    }
   ) {
     this.evCache = new EventCache();
   }
   attach(el: HTMLElement) {
-    this.handlers.forEach(([type, handler]) => el.addEventListener(type, handler)
+    this.handlers.forEach(([type, handler]) =>
+      el.addEventListener(type, handler)
     );
   }
   detach(el: HTMLElement) {
-    this.handlers.forEach(([type, handler]) => el.removeEventListener(type, handler)
+    this.handlers.forEach(([type, handler]) =>
+      el.removeEventListener(type, handler)
     );
   }
 
@@ -92,13 +94,27 @@ export class DragHandler {
   onWheel(e: WheelEvent) {
     e.preventDefault();
     if (e.ctrlKey) {
-      this.handler.onPinch(new ZoomEvent('pinchstart', new Point(e.clientX, e.clientY), 100));
-      this.handler.onPinch(new ZoomEvent('pinchend', new Point(e.clientX, e.clientY), 100 - e.deltaY));
+      this.handler.onPinch(
+        new ZoomEvent("pinchstart", new Point(e.clientX, e.clientY), 100)
+      );
+      this.handler.onPinch(
+        new ZoomEvent(
+          "pinchend",
+          new Point(e.clientX, e.clientY),
+          100 - e.deltaY
+        )
+      );
     } else {
-      this.handler.onPinch(new ZoomEvent('pinchstart',
-        new Point(e.clientX, e.clientY), 1));
-      this.handler.onPinch(new ZoomEvent('pinchend',
-        new Point(e.clientX + e.deltaX, e.clientY + e.deltaY), 1));
+      this.handler.onPinch(
+        new ZoomEvent("pinchstart", new Point(e.clientX, e.clientY), 1)
+      );
+      this.handler.onPinch(
+        new ZoomEvent(
+          "pinchend",
+          new Point(e.clientX + e.deltaX, e.clientY + e.deltaY),
+          1
+        )
+      );
     }
   }
 }

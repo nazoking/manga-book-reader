@@ -1,7 +1,7 @@
 import { EventHandler } from "./EventHandler";
 
 export class EventEmitter<T> {
-  constructor(private handlers: EventHandler<T>[] = []) { }
+  constructor(private handlers: EventHandler<T>[] = []) {}
   trigger(action: T | null | undefined): boolean | void {
     if (action) {
       let ret: boolean | void = false;

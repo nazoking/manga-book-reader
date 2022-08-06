@@ -5,5 +5,3 @@ export interface DragGesture {
   lastDirection?: Direction;
   gestures: Array<Direction>;
 }
-
-
