@@ -1,10 +1,10 @@
-import { Book } from '../book/Book';
+import { Book } from "../book/Book";
 import { PageNumber } from "../page/PageNumber";
 import { BookController } from "../book/BookController";
 import { BookLoadAction } from "../view/BookLoadAction";
-import { ActionController } from '../view/ActionController';
-import { SpreadPages } from '../page/SpreadPages';
-import { EventEmitter as Emitter } from '../view/event/Emitter';
+import { ActionController } from "../view/ActionController";
+import { SpreadPages } from "../page/SpreadPages";
+import { EventEmitter as Emitter } from "../view/event/Emitter";
 declare type BookSelectorEvent<BookMeta> = {
     controller: BookController<BookMeta>;
     bookIndex: number;

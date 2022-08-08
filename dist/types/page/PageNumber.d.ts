@@ -5,7 +5,7 @@
 export declare type PageNumber = number | {
     last: number;
 };
-export declare module PageNumber {
+export declare namespace PageNumber {
     const of: (page: PageNumber, length: number) => number;
     const inRange: (page: PageNumber, length: number) => number;
 }

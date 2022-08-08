@@ -1,5 +1,5 @@
-import { Storage } from './Storage';
-import { Bookmark } from './Bookmark';
+import { Storage } from "./Storage";
+import { Bookmark } from "./Bookmark";
 export declare class CookieStorage implements Storage<Bookmark> {
     private name;
     constructor(name?: string);

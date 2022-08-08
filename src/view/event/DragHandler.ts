@@ -12,15 +12,15 @@ export class DragHandler {
   private evCache: EventCache;
   private dragging: DragGesture | undefined;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private handlers: Array<any> = [
-    ["pointerdown", (e: PointerEvent) => this.onPointerDown(e)],
-    ["pointermove", (e: PointerEvent) => this.onPointerMove(e)],
-    ["pointerup", (e: PointerEvent) => this.onPointerUp(e)],
-    ["pointercancel", (e: PointerEvent) => this.onPointerUp(e)],
-    ["pointerout", (e: PointerEvent) => this.onPointerUp(e)],
-    ["pointerleave", (e: PointerEvent) => this.onPointerUp(e)],
-    ["wheel", (e: WheelEvent) => this.onWheel(e)],
-  ];
+  private handlers: { [k in keyof HTMLElementEventMap]?: ((ev:HTMLElementEventMap[k]) => void) } = {
+    "pointerdown": (e: PointerEvent) => this.onPointerDown(e),
+    "pointermove": (e: PointerEvent) => this.onPointerMove(e),
+    "pointerup": (e: PointerEvent) => this.onPointerUp(e),
+    "pointercancel": (e: PointerEvent) => this.onPointerUp(e),
+    "pointerout": (e: PointerEvent) => this.onPointerUp(e),
+    "pointerleave": (e: PointerEvent) => this.onPointerUp(e),
+    "wheel": (e: WheelEvent) => this.onWheel(e),
+  };
   constructor(
     private handler: {
       onPinch: EventHandler<PanZoomEvent>;
@@ -30,13 +30,15 @@ export class DragHandler {
     this.evCache = new EventCache();
   }
   attach(el: HTMLElement) {
-    this.handlers.forEach(([type, handler]) =>
-      el.addEventListener(type, handler)
+    Object.entries(this.handlers).forEach(([type, handler]) =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      el.addEventListener(type, handler as any)
     );
   }
   detach(el: HTMLElement) {
-    this.handlers.forEach(([type, handler]) =>
-      el.removeEventListener(type, handler)
+    Object.entries(this.handlers).forEach(([type, handler]) =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      el.removeEventListener(type, handler as any)
     );
   }
 

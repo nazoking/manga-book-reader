@@ -1,1 +1,1 @@
-{"version":3,"file":"PanZoomEvent.d.ts","sourceRoot":"","sources":["../../../../src/view/drag/PanZoomEvent.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,KAAK,EAAE,MAAM,SAAS,CAAC;AAGhC,MAAM,WAAW,YAAY;IAC3B,IAAI,EAAE,MAAM,CAAC;IACb,MAAM,EAAE,KAAK,CAAC;IACd,QAAQ,EAAE,MAAM,CAAC;CAClB"}
+{"version":3,"file":"PanZoomEvent.d.ts","sourceRoot":"","sources":["../../../../src/view/drag/PanZoomEvent.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,KAAK,EAAE,MAAM,SAAS,CAAC;AAEhC,MAAM,WAAW,YAAY;IAC3B,IAAI,EAAE,MAAM,CAAC;IACb,MAAM,EAAE,KAAK,CAAC;IACd,QAAQ,EAAE,MAAM,CAAC;CAClB"}

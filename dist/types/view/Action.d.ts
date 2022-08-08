@@ -4,7 +4,7 @@ export interface Action extends Action.Seed {
     /** generate an action that executes next If this action is disabled, */
     or(next: Action.Able): Action;
 }
-export declare module Action {
+export declare namespace Action {
     /** action seed */
     interface Seed {
         action(): void;
@@ -16,7 +16,7 @@ export declare module Action {
 export declare const Action: {
     NOP: Action;
     wrap(action: Action.Able): Action;
-    isEnable(action: Action.Seed): (() => Promise<boolean>);
+    isEnable(action: Action.Seed): () => Promise<boolean>;
     lazy(action: () => Action): Action;
 };
 //# sourceMappingURL=Action.d.ts.map

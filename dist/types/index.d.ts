@@ -1,9 +1,9 @@
-import { Viewer } from './view/Viewer';
+import { Viewer } from "./view/Viewer";
 import { BookLoadAction } from "./view/BookLoadAction";
 import { DragHandler } from "./view/event/DragHandler";
-import { infinityScroll } from './scraping/infinityScroll';
-import { Book } from './book/Book';
-import { ActionController } from './view/ActionController';
+import { infinityScroll } from "./scraping/infinityScroll";
+import { Book } from "./book/Book";
+import { ActionController } from "./view/ActionController";
 declare const _default: {
     Book: (pages: Promise<import("./page/PageData").PageData>[]) => Book;
     ActionController: typeof ActionController;
