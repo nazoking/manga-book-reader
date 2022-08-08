@@ -6,7 +6,6 @@ export declare class Viewer {
     readonly rightPage: HTMLElement;
     readonly leftPage: HTMLElement;
     readonly pages: HTMLElement;
-    readonly info: HTMLElement;
     readonly bookTitle: HTMLElement;
     private infoTimer;
     private zoom?;
