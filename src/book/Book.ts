@@ -27,6 +27,7 @@ export const Book = (pages: Promise<PageData>[]): Book => {
         pageNumber: () => page,
         isSingleUnit: async () =>
           (await image1)?.isWidePage || (await image2)?.isWidePage || false,
+        pageMax: pages.length,
       };
       return spread;
     },

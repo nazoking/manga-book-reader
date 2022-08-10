@@ -19,4 +19,5 @@ export interface SpreadPages {
   image2(): Promise<PageData | null> | null;
   /** True in double-page spread mode. */
   isSingleUnit(): Promise<boolean>;
+  pageMax?: number;
 }

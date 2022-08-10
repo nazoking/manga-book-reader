@@ -148,6 +148,16 @@ export class Viewer {
     this.inner.classList.toggle("single", await isSingleUnit);
   }
   async setCurrent(pages: SpreadPages) {
+    Array.from(this.inner.querySelectorAll('.pageNumber')).forEach(e => {
+      e.textContent = `${pages.pageNumber()}`;
+    });
+    Array.from(this.inner.querySelectorAll('.pageMax')).forEach(e => {
+      e.textContent = (pages.pageMax !== undefined) ? `${pages.pageMax}` : "";
+    });
+    Array.from(this.inner.querySelectorAll<HTMLInputElement>('.range')).forEach(e => {
+      e.value = `${pages.pageNumber()}`;
+      e.max = `${pages.pageMax ?? 0}`
+    });
     this.zoomReset();
     this.inner.dataset.pageNumber = `${pages.pageNumber()}`;
     const set = async (

@@ -197,3 +197,17 @@ button.controller.disabled {
 .right-button {
   right: 60px;
 }
+:fullscreen .bottom {
+  position: absolute;
+  bottom: 0;
+}
+.bottom {
+  width: 100%;
+  display: flex;
+  background-color: white;
+}
+.bottom .range {
+  display: block;
+  direction: rtl;
+  flex-grow: 1;
+}
