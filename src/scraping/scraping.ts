@@ -66,7 +66,7 @@ type DomPageLoader = {
   }) => Promise<void>;
 };
 type BookPageLoader = {
-  loadBookPageList: (arg: { url: string }) => Promise<string[]>;
+  loadBookPageList: (arg: { url: string }) => Promise<string[]> | Promise<Promise<string>[]>;
 };
 const domLoader = async (book: { url: string }) => {
   const r = await fetch(book.url);
@@ -182,7 +182,7 @@ export const scraping = async <
       console.log("📖load=", book);
       const pageList = await bookPageLoader.loadBookPageList(book);
       console.log("📖pageList=", pageList);
-      return Book(pageList.map(async (src) => ({ src })));
+      return Book(pageList.map((src) => Promise.resolve(src).then(src => ({ src }))));
     },
     getName: (b) => b.title,
     onBookChanged: ({ book }) => {
