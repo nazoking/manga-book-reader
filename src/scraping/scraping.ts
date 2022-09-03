@@ -19,34 +19,34 @@ type Getterable =
   | ((doc: Document) => Promise<op>);
 const toParser =
   (getterable: Getterable) =>
-  async (doc: Document): Promise<string[]> => {
-    const inferPages = (imgs: op): string[] => {
-      if (imgs.length == 0) return imgs as string[];
-      if (isNodeArray(imgs)) {
-        if (imgs[0] instanceof HTMLAnchorElement) {
-          return inferPages(
-            (imgs as Array<HTMLAnchorElement>).map((e) => e.href)
-          );
+    async (doc: Document): Promise<string[]> => {
+      const inferPages = (imgs: op): string[] => {
+        if (imgs.length == 0) return imgs as string[];
+        if (isNodeArray(imgs)) {
+          if (imgs[0] instanceof HTMLAnchorElement) {
+            return inferPages(
+              (imgs as Array<HTMLAnchorElement>).map((e) => e.href)
+            );
+          }
+          if (imgs[0] instanceof HTMLImageElement) {
+            return inferPages(
+              (imgs as Array<HTMLImageElement>).map(
+                (e) => e.dataset.lazySrc || e.dataset.src || e.src
+              )
+            );
+          }
+          throw new Error(`📖Un Supported Node ${imgs[0]}`);
         }
-        if (imgs[0] instanceof HTMLImageElement) {
-          return inferPages(
-            (imgs as Array<HTMLImageElement>).map(
-              (e) => e.dataset.lazySrc || e.dataset.src || e.src
-            )
-          );
-        }
-        throw new Error(`📖Un Supported Node ${imgs[0]}`);
+        return imgs;
+      };
+      if (typeof getterable == "string") {
+        return inferPages(query(getterable, doc));
       }
-      return imgs;
+      if (typeof getterable == "object") {
+        return inferPages(getterable);
+      }
+      return inferPages(await getterable(doc));
     };
-    if (typeof getterable == "string") {
-      return inferPages(query(getterable, doc));
-    }
-    if (typeof getterable == "object") {
-      return inferPages(getterable);
-    }
-    return inferPages(await getterable(doc));
-  };
 type DomPageLoaderA = {
   loadDom?: (arg: { url: string }) => Promise<Document>;
   parseDom: Getterable;
