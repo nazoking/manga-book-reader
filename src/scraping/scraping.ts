@@ -136,12 +136,16 @@ export const scraping = async <
   addController = undefined,
   bookmarker = new CookieStorage(),
   viewerDom = defaultViewerDom(),
+  onBookChanged = undefined,
+  onPageChanged = undefined,
 }: {
   bookList: BookMeta[] | undefined;
   pageList: Getterable | BookPageLoader | DomPageLoaderA;
   addController?: string | HTMLElement | ((div: HTMLElement) => void);
   bookmarker?: Storage<Bookmark>;
   viewerDom?: HTMLElement;
+  onBookChanged?: Parameters<typeof multiBook>[0]["onBookChanged"],
+  onPageChanged?: Parameters<typeof multiBook>[0]["onPageChanged"],
 }) => {
   let bookPageLoader: BookPageLoader;
   if (!bookList || bookList.length == 0) {
@@ -185,18 +189,18 @@ export const scraping = async <
       return Book(pageList.map((src) => Promise.resolve(src).then(src => ({ src }))));
     },
     getName: (b) => b.title,
-    onBookChanged: ({ book }) => {
+    onBookChanged: onBookChanged ?? (({ book }) => {
       const current_url = window.location.href;
       history.replaceState({}, "", book.url);
       history.replaceState({}, "", current_url);
-    },
-    onPageChanged({ page, book }) {
+    }),
+    onPageChanged: onPageChanged ?? (({ page, book }) => {
       bookmarker.write({
         title: book.title,
         page,
       });
       console.log(`📖open ${book.title}(${page})`);
-    },
+    }),
   });
   doAddController(controller.view.wrapper, addController);
   action.move(bookNumber, pageNumber);
