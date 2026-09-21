@@ -2,10 +2,12 @@
   "include": ["src/**/*.ts"],
   /* https://www.typescriptlang.org/ja/tsconfig */
   "compilerOptions": {
+    "rootDir": ".",
     "outDir": "./out/js",
-    "moduleResolution": "Node",
+    "declarationDir": "./dist/types",
+    "moduleResolution": "nodenext",
     "target": "ESNext",
-    "module": "ES2022",
+    "module": "nodenext",
     "lib": ["DOM","DOM.Iterable","ES2022"],
     "isolatedModules": true,
     "strict": true,
@@ -16,6 +18,5 @@
     "emitDeclarationOnly": true,
     "declaration": true,
     "declarationMap": true,
-    "declarationDir": "./dist/types",
   },
 }

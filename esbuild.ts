@@ -3,7 +3,7 @@ import fs from 'fs';
 import os from 'os';
 import crypto from 'crypto';
 
-import { build, Plugin } from 'esbuild';
+import { build, context, Plugin } from 'esbuild';
 
 const minify = true;
 
@@ -57,7 +57,7 @@ const htmlMinify = ({ minify }: { minify: boolean }): Plugin => {
 }
 
 async function main(tmpDir: string) {
-  await build({
+  const options = {
     entryPoints: [path.resolve(__dirname, 'src/index.ts')],
     outfile: 'dist/index.mjs',
     bundle: true,
@@ -65,13 +65,18 @@ async function main(tmpDir: string) {
     loader: {
       '.html': 'text',
     },
-    watch: process.env.WATCH == "1",
     minify,
     plugins: [
       embedCss({ minify, tmpDir }),
       htmlMinify({ minify }),
     ]
-  });
+  } as const;
+  if (process.env.WATCH === "1") {
+    const ctx = await context(options);
+    await ctx.watch();
+  } else {
+    await build(options);
+  }
 }
 const withTmpDir = async (f: (tmpDir: string) => Promise<void>) => {
   const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "esbuild"))

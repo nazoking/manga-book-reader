@@ -1,6 +1,9 @@
+import viewHtml from "./view.html";
+import viewCss from "./view.css";
+
 export const viewerDom = (doc: Document = document) => {
   const div = doc.createElement("div");
   div.innerHTML =
-    require("./view.html") + `<style>${require("./view.css")}</style>`;
+    viewHtml + `<style>${viewCss}</style>`;
   return div;
 };
