@@ -191,8 +191,12 @@ export const scraping = async <
     getName: (b) => b.title,
     onBookChanged: onBookChanged ?? (({ book }) => {
       const current_url = window.location.href;
-      history.replaceState({}, "", book.url);
-      history.replaceState({}, "", current_url);
+      try{
+        history.replaceState({}, "", book.url);
+        history.replaceState({}, "", current_url);
+      } catch (e) {
+        // origin が違うと security error になることがある
+      }
     }),
     onPageChanged: onPageChanged ?? (({ page, book }) => {
       bookmarker.write({
