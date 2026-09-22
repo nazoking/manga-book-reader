@@ -15,11 +15,11 @@ type op = string[] | Node[];
 type Getterable =
   | string
   | op
-  | ((doc: Document, options: { pageUrl: string }) => op)
-  | ((doc: Document, options: { pageUrl: string }) => Promise<op>);
+  | ((doc: Document, options: { url: string }) => op)
+  | ((doc: Document, options: { url: string }) => Promise<op>);
 const toParser =
   (getterable: Getterable) =>
-    async (doc: Document, options: { pageUrl: string }): Promise<string[]> => {
+    async (doc: Document, options: { url: string }): Promise<string[]> => {
       const inferPages = (imgs: op): string[] => {
         if (imgs.length == 0) return imgs as string[];
         if (isNodeArray(imgs)) {
@@ -58,7 +58,7 @@ type DomPageLoaderA = {
 };
 type DomPageLoader = {
   loadDom: (arg: { url: string }) => Promise<Document>;
-  parseDom: (doc: Document, options: { pageUrl: string }) => Promise<string[]>;
+  parseDom: (doc: Document, options: { url: string }) => Promise<string[]>;
   postParse: (arg: {
     pageList: string[];
     dom: Document;
@@ -121,7 +121,7 @@ const toBookPageLoader = (
   return {
     loadBookPageList: async (book: { url: string }) => {
       const dom = await dl.loadDom(book);
-      const pageList = await dl.parseDom(dom, { pageUrl: book.url });
+      const pageList = await dl.parseDom(dom, book);
       await dl.postParse({ pageList, dom, book });
       return pageList;
     },
@@ -157,7 +157,7 @@ export const scraping = async <
       );
       return;
     }
-    const pages = await toDomPageLoader(pageList).parseDom(document, { pageUrl: location.href });
+    const pages = await toDomPageLoader(pageList).parseDom(document, { url: location.href });
     if (!pages.length) {
       console.log("📖pageList not found");
       return;
