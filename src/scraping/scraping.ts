@@ -15,11 +15,11 @@ type op = string[] | Node[];
 type Getterable =
   | string
   | op
-  | ((doc: Document) => op)
-  | ((doc: Document) => Promise<op>);
+  | ((doc: Document, options: { pageUrl: string }) => op)
+  | ((doc: Document, options: { pageUrl: string }) => Promise<op>);
 const toParser =
   (getterable: Getterable) =>
-    async (doc: Document): Promise<string[]> => {
+    async (doc: Document, options: { pageUrl: string }): Promise<string[]> => {
       const inferPages = (imgs: op): string[] => {
         if (imgs.length == 0) return imgs as string[];
         if (isNodeArray(imgs)) {
@@ -45,7 +45,7 @@ const toParser =
       if (typeof getterable == "object") {
         return inferPages(getterable);
       }
-      return inferPages(await getterable(doc));
+      return inferPages(await getterable(doc, options));
     };
 type DomPageLoaderA = {
   loadDom?: (arg: { url: string }) => Promise<Document>;
@@ -58,7 +58,7 @@ type DomPageLoaderA = {
 };
 type DomPageLoader = {
   loadDom: (arg: { url: string }) => Promise<Document>;
-  parseDom: (doc: Document) => Promise<string[]>;
+  parseDom: (doc: Document, options: { pageUrl: string }) => Promise<string[]>;
   postParse: (arg: {
     pageList: string[];
     dom: Document;
@@ -93,7 +93,7 @@ const isBookPageLoader = (
   typeof pageList == "object" && "loadBookPageList" in pageList;
 
 const toDomPageLoader = (
-  pageList: Getterable | DomPageLoaderA
+  pageList: Getterable | DomPageLoaderA,
 ): DomPageLoader => {
   if (typeof pageList == "object" && !Array.isArray(pageList)) {
     return {
@@ -121,7 +121,7 @@ const toBookPageLoader = (
   return {
     loadBookPageList: async (book: { url: string }) => {
       const dom = await dl.loadDom(book);
-      const pageList = await dl.parseDom(dom);
+      const pageList = await dl.parseDom(dom, { pageUrl: book.url });
       await dl.postParse({ pageList, dom, book });
       return pageList;
     },
@@ -157,7 +157,7 @@ export const scraping = async <
       );
       return;
     }
-    const pages = await toDomPageLoader(pageList).parseDom(document);
+    const pages = await toDomPageLoader(pageList).parseDom(document, { pageUrl: location.href });
     if (!pages.length) {
       console.log("📖pageList not found");
       return;
