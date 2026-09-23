@@ -5,6 +5,8 @@ import { Action } from "./Action";
 
 export class ActionController {
   private currentRequest = 0;
+  private actionStateRevision = 0;
+  private isLoading = false;
   readonly keys: { [key: string]: string | Action.Seed } = {
     ArrowDown: "nextPageOrBook",
     Space: "nextPageOrBook",
@@ -43,15 +45,21 @@ export class ActionController {
   } {
     return {
       nextPage: {
-        action: () => c.setCurrent(c.current.nextPage()),
-        isEnable: () => c.current.hasNext(),
+        action: () => c.moveCurrent((current) => current.nextPage()),
+        isEnable: async () => !c.isLoading && (await c.current.hasNext()),
       },
       prevPage: {
-        action: () => c.setCurrent(c.current.prevPage()),
-        isEnable: () => c.current.hasPrev(),
+        action: () => c.moveCurrent((current) => current.prevPage()),
+        isEnable: async () => !c.isLoading && (await c.current.hasPrev()),
       },
-      nextHalf: () => c.setCurrent(c.current.move(+1)),
-      prevHalf: () => c.setCurrent(c.current.move(-1)),
+      nextHalf: {
+        action: () => c.moveCurrent((current) => current.move(+1)),
+        isEnable: async () => !c.isLoading,
+      },
+      prevHalf: {
+        action: () => c.moveCurrent((current) => current.move(-1)),
+        isEnable: async () => !c.isLoading,
+      },
       fullscreen: {
         action: () => (c.view.fullScreen = true),
         isEnable: async () => !c.view.fullScreen,
@@ -60,17 +68,23 @@ export class ActionController {
       toggleFullscreen: () =>
         c.doAction(c.view.fullScreen ? "exitFullscreen" : "fullscreen"),
       nextPageOrBook: Action.lazy(() =>
-        Action.wrap(c.actions["nextPage"]).or(c.actions["nextBook"])
+        c.isLoading
+          ? Action.NOP
+          : Action.wrap(c.actions["nextPage"]).or(c.actions["nextBook"])
       ),
       prevPageOrBook: Action.lazy(() =>
-        Action.wrap(c.actions["prevPage"]).or(c.actions["prevBookLast"])
+        c.isLoading
+          ? Action.NOP
+          : Action.wrap(c.actions["prevPage"]).or(c.actions["prevBookLast"])
       ),
       firstPage: {
-        action: () => c.current.move(-1),
-        isEnable: async () => c.current.pageNumber() != -1,
+        action: () => c.moveToPage(-1),
+        isEnable: async () => !c.isLoading && c.current.pageNumber() != -1,
       },
       firstPageOrPrevBook: Action.lazy(() =>
-        Action.wrap(c.actions["firstPage"]).or(c.actions["prevBook"])
+        c.isLoading
+          ? Action.NOP
+          : Action.wrap(c.actions["firstPage"]).or(c.actions["prevBook"])
       ),
       zoomReset: () => c.view.zoomReset(),
     };
@@ -106,10 +120,21 @@ export class ActionController {
         return true;
       }
     });
+    view.setRangeHandler((pageNumber) => this.moveToPage(pageNumber));
     if (actions) {
       this.addActions(actions);
     }
     this.setCurrent(Promise.resolve(current));
+  }
+  private moveCurrent(
+    move: (current: SpreadPages) => Promise<SpreadPages>
+  ) {
+    if (this.isLoading) return;
+    this.setCurrent(move(this.current));
+  }
+  private moveToPage(pageNumber: number) {
+    if (this.isLoading) return;
+    this.setCurrent(this.current.move(pageNumber - this.current.pageNumber()));
   }
   addActions(actions: { [key: string]: Action.Able }) {
     Object.entries(actions).forEach(([name, action]) =>
@@ -140,16 +165,40 @@ export class ActionController {
   async setCurrent(page: SpreadPages | Promise<SpreadPages>) {
     const request = ++this.currentRequest;
     this.view.invalidatePendingRender();
-    const current = "then" in page ? await page : page;
+    this.isLoading = "then" in page;
+    this.view.setRangeDisabled(this.isLoading);
+    if (this.isLoading) this.updateActionStates(request);
+    let current: SpreadPages;
+    try {
+      current = "then" in page ? await page : page;
+    } catch (error) {
+      if (request === this.currentRequest) {
+        this.isLoading = false;
+        this.view.setRangeDisabled(false);
+        this.updateActionStates(request);
+      }
+      throw error;
+    }
     if (request !== this.currentRequest) return;
+    this.isLoading = false;
+    this.view.setRangeDisabled(false);
     this.current = current;
     this.view.setCurrent(this.current);
+    this.updateActionStates(request);
+  }
+  private updateActionStates(request: number) {
+    const revision = ++this.actionStateRevision;
     Object.entries(this.clicks).forEach(async ([selector, a]) => {
       const action = this.getAction(a);
       const elements = this.view.root.querySelectorAll(selector);
       if (elements.length) {
         const disabled = action ? !(await action.isEnable()) : true;
-        if (request !== this.currentRequest) return;
+        if (
+          request !== this.currentRequest ||
+          revision !== this.actionStateRevision
+        ) {
+          return;
+        }
         Array.from(elements).forEach((elem) => {
           elem.classList.toggle("disabled", disabled);
         });

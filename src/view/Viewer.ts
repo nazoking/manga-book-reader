@@ -70,6 +70,9 @@ export class Viewer {
   setClickHandler(clickHandler: EventHandler<Element>) {
     this.inner.addEventListener("click", (e) => {
       e.stopPropagation();
+      if (e.target instanceof HTMLInputElement && e.target.type == "range") {
+        return;
+      }
       e.preventDefault();
       let v = e.target as HTMLElement | null;
       while (v && v != this.inner) {
@@ -89,6 +92,13 @@ export class Viewer {
     this.inner.addEventListener(
       "keydown",
       (event) => {
+        if (
+          event.target instanceof HTMLInputElement &&
+          event.target.type == "range"
+        ) {
+          event.stopPropagation();
+          return;
+        }
         if (keyHandler(new KeyEvent(event))) {
           event.preventDefault();
           event.stopPropagation();
@@ -96,6 +106,16 @@ export class Viewer {
       },
       true
     );
+  }
+  setRangeHandler(handler: (pageNumber: number) => void) {
+    this.inner.querySelectorAll<HTMLInputElement>(".range").forEach((range) => {
+      range.addEventListener("change", () => handler(Number(range.value)));
+    });
+  }
+  setRangeDisabled(disabled: boolean) {
+    this.inner.querySelectorAll<HTMLInputElement>(".range").forEach((range) => {
+      range.disabled = disabled;
+    });
   }
   toggleControllers() {
     if (this.inner.classList.contains("show-controllers")) {
@@ -165,8 +185,8 @@ export class Viewer {
       e.textContent = (pages.pageMax !== undefined) ? `${pages.pageMax}` : "";
     });
     Array.from(this.inner.querySelectorAll<HTMLInputElement>('.range')).forEach(e => {
+      e.max = `${Math.max((pages.pageMax ?? 1) - 1, -1)}`;
       e.value = `${pages.pageNumber()}`;
-      e.max = `${pages.pageMax ?? 0}`
     });
     this.zoomReset();
     this.inner.dataset.pageNumber = `${pages.pageNumber()}`;

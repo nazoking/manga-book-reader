@@ -43,6 +43,12 @@ export class DragHandler {
   }
 
   onPointerDown(ev: PointerEvent) {
+    if (
+      ev.target instanceof Element &&
+      ev.target.closest('input[type="range"]')
+    ) {
+      return;
+    }
     this.evCache.put(ev);
     if (this.evCache.size == 2) {
       const e = this.evCache.values();
