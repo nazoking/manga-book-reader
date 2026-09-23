@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "Manga book reader",
   "main": "index.js",
-  "types": "./dist/types/index.d.ts",
+  "types": "./dist/types/src/index.d.ts",
   "scripts": {
     "build": "tsc --emitDeclarationOnly && npm run esbuild",
     "esbuild": "node --require esbuild-register esbuild.ts",
