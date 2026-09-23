@@ -30,9 +30,10 @@ const toParser =
           }
           if (imgs[0] instanceof HTMLImageElement) {
             return inferPages(
-              (imgs as Array<HTMLImageElement>).map(
-                (e) => e.dataset.lazySrc || e.dataset.src || e.src
-              )
+              (imgs as Array<HTMLImageElement>).map((e) => {
+                const src = e.dataset.lazySrc || e.dataset.src;
+                return src ? new URL(src, doc.baseURI).href : e.src;
+              })
             );
           }
           throw new Error(`📖Un Supported Node ${imgs[0]}`);
