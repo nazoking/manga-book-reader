@@ -80,15 +80,24 @@ export const multiBook = <BookMeta>({
     };
   };
   const selectHandler = new Emitter<BookSelectorEvent<BookMeta>>();
+  let bookRequest = 0;
+  let displayedBook: BookController<BookMeta> | undefined;
   const action = new BookLoadAction(
     getController(0),
     async (bc: BookController<BookMeta>, pageNumber) => {
-      controller.setCurrent(Promise.resolve(dummyPage));
+      const request = ++bookRequest;
+      displayedBook = undefined;
+      controller.setCurrent(dummyPage);
       selectHandler.trigger({
         controller: bc,
         bookIndex: bookList.findIndex((l) => l == bc.getBookMeta()),
       });
-      controller.setCurrent(bc.getSpreadPages(pageNumber));
+      controller.setCurrent(
+        bc.getSpreadPages(pageNumber).then((pages) => {
+          if (request === bookRequest) displayedBook = bc;
+          return pages;
+        })
+      );
       onBookChanged({ book: bc.getBookMeta(), page: pageNumber });
     }
   );
@@ -98,9 +107,10 @@ export const multiBook = <BookMeta>({
     action.actions()
   );
   controller.view.onChanged.add((page) => {
+    if (!displayedBook || page === dummyPage || page !== controller.current) return;
     onPageChanged({
       page: page.pageNumber(),
-      book: action.getBookController().getBookMeta(),
+      book: displayedBook.getBookMeta(),
     });
   });
   controller.view.setTitle(

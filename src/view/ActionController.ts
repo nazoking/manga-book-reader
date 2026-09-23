@@ -4,6 +4,7 @@ import { Viewer } from "./Viewer";
 import { Action } from "./Action";
 
 export class ActionController {
+  private currentRequest = 0;
   readonly keys: { [key: string]: string | Action.Seed } = {
     ArrowDown: "nextPageOrBook",
     Space: "nextPageOrBook",
@@ -136,14 +137,19 @@ export class ActionController {
       }
     }
   }
-  async setCurrent(page: Promise<SpreadPages>) {
-    this.current = await page;
+  async setCurrent(page: SpreadPages | Promise<SpreadPages>) {
+    const request = ++this.currentRequest;
+    this.view.invalidatePendingRender();
+    const current = "then" in page ? await page : page;
+    if (request !== this.currentRequest) return;
+    this.current = current;
     this.view.setCurrent(this.current);
     Object.entries(this.clicks).forEach(async ([selector, a]) => {
       const action = this.getAction(a);
       const elements = this.view.root.querySelectorAll(selector);
       if (elements.length) {
         const disabled = action ? !(await action.isEnable()) : true;
+        if (request !== this.currentRequest) return;
         Array.from(elements).forEach((elem) => {
           elem.classList.toggle("disabled", disabled);
         });

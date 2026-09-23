@@ -20,6 +20,7 @@ export class Viewer {
   readonly leftPage: HTMLElement;
   readonly pages: HTMLElement;
   readonly bookTitle: HTMLElement;
+  private renderRequest = 0;
   private infoTimer: number | undefined;
   private zoom?: Zoom;
   readonly onChanged: EventEmitter<SpreadPages> =
@@ -144,10 +145,19 @@ export class Viewer {
     if (type) elm.classList.add(type);
   }
 
-  private async setPageTypeSingleUnit(isSingleUnit: Promise<boolean>) {
-    this.inner.classList.toggle("single", await isSingleUnit);
+  invalidatePendingRender() {
+    ++this.renderRequest;
+  }
+  private async setPageTypeSingleUnit(
+    isSingleUnit: Promise<boolean>,
+    request: number
+  ) {
+    const single = await isSingleUnit;
+    if (request !== this.renderRequest) return;
+    this.inner.classList.toggle("single", single);
   }
   async setCurrent(pages: SpreadPages) {
+    const request = ++this.renderRequest;
     Array.from(this.inner.querySelectorAll('.pageNumber')).forEach(e => {
       e.textContent = `${pages.pageNumber()}`;
     });
@@ -165,30 +175,29 @@ export class Viewer {
       tag: HTMLElement
     ) => {
       const data = await promise;
-      if (this.inner.dataset.pageNumber != `${pages.pageNumber()}`) return;
+      if (request !== this.renderRequest) return;
       if (!data) {
         this.setPageImageType(tag, "no-image");
-        this.setPageTypeSingleUnit(pages.isSingleUnit());
+        this.setPageTypeSingleUnit(pages.isSingleUnit(), request);
         return;
       } else {
         this.setPageImageType(tag, "loading-image");
         tag.style.backgroundImage = `url("${encodeURI(data.src)}")`;
         if (typeof data.isWidePage == "boolean") {
           this.setPageImageType(tag, "show-image");
-          this.setPageTypeSingleUnit(pages.isSingleUnit());
+          this.setPageTypeSingleUnit(pages.isSingleUnit(), request);
           return;
         }
         try {
           await loadImage(data.src, ({ width, height }) => {
-            if (this.inner.dataset.pageNumber != `${pages.pageNumber()}`)
-              return;
+            if (request !== this.renderRequest) return;
             data.isWidePage = height < width;
-            this.setPageTypeSingleUnit(pages.isSingleUnit());
+            this.setPageTypeSingleUnit(pages.isSingleUnit(), request);
           });
-          if (this.inner.dataset.pageNumber != `${pages.pageNumber()}`) return;
+          if (request !== this.renderRequest) return;
           this.setPageImageType(tag, "show-image");
         } catch (e) {
-          if (this.inner.dataset.pageNumber != `${pages.pageNumber()}`) return;
+          if (request !== this.renderRequest) return;
           this.setPageImageType(tag, "broken-image");
           throw new Error(`can't load ${data.src}`);
         }
@@ -198,6 +207,7 @@ export class Viewer {
       set(pages.image1(), this.rightPage),
       set(pages.image2(), this.leftPage),
     ]);
+    if (request !== this.renderRequest) return;
     this.onChanged.trigger(pages);
   }
 }
