@@ -8,9 +8,14 @@ import { preLoadImageList } from "./scraping/preLoadImageList";
 import { scraping } from "./scraping/scraping";
 import { ActionController } from "./view/ActionController";
 import { query } from "./high/query";
+import { ImageCache } from "./page/ImageCache";
+
+import { ImagePrefetch } from "./loading/ImagePrefetch";
 
 export default {
   Book,
+  ImageCache,
+  ImagePrefetch,
   ActionController,
   Viewer,
   BookLoadAction,

@@ -1,42 +1,38 @@
 import { PageNumber } from "../page/PageNumber";
 import { Action } from "./Action";
-import { BookController } from "../book/BookController";
 
-export class BookLoadAction<T> {
+/** The selected chapter index is the only navigation state. */
+export class BookLoadAction {
+  private currentIndex = 0;
+
   constructor(
-    private bookController: BookController<T>,
-    public setHandler: (bc: BookController<T>, page: PageNumber) => void
+    private readonly count: number,
+    private readonly select: (index: number, page: PageNumber) => void
   ) {}
-  actions(): { [key: string]: Action.Able } {
+
+  get index() {
+    return this.currentIndex;
+  }
+
+  move(index: number, page: PageNumber = -1): void {
+    if (!this.count) return;
+    this.currentIndex = Math.min(
+      Math.max(Math.trunc(index), 0),
+      this.count - 1
+    );
+    this.select(this.currentIndex, page);
+  }
+
+  actions(): Record<string, Action.Able> {
+    const step = (offset: number, page: PageNumber = -1): Action.Seed => ({
+      action: () => this.move(this.index + offset, page),
+      isEnable: async () =>
+        this.index + offset >= 0 && this.index + offset < this.count,
+    });
     return {
-      nextBook: {
-        action: () => {
-          this.move(this.bookController.move(+1), -1);
-        },
-        isEnable: async () => this.bookController.canMove(+1),
-      },
-      prevBook: {
-        action: () => {
-          this.move(this.bookController.move(-1), -1);
-        },
-        isEnable: async () => this.bookController.canMove(-1),
-      },
-      prevBookLast: {
-        action: () => {
-          this.move(this.bookController.move(-1), { last: -1 });
-        },
-        isEnable: async () => this.bookController.canMove(-1),
-      },
+      nextBook: step(1),
+      prevBook: step(-1),
+      prevBookLast: step(-1, { last: -1 }),
     };
-  }
-  move(bookNumber: number | BookController<T>, pageNumber: PageNumber) {
-    if (typeof bookNumber == "number") {
-      bookNumber = this.bookController.goTo(bookNumber);
-    }
-    this.bookController = bookNumber;
-    this.setHandler(this.bookController, pageNumber);
-  }
-  getBookController() {
-    return this.bookController;
   }
 }

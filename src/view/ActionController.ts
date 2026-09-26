@@ -1,3 +1,4 @@
+import { PageNumber } from "../page/PageNumber";
 import { KeyEvent } from "./event/KeyEvent";
 import { SpreadPages } from "../page/SpreadPages";
 import { Viewer } from "./Viewer";
@@ -6,7 +7,13 @@ import { Action } from "./Action";
 export class ActionController {
   private currentRequest = 0;
   private actionStateRevision = 0;
-  private isLoading = false;
+  private state: "loading" | "ready" | "failed" = "ready";
+  private reloadPage?: (page: PageNumber) => Promise<SpreadPages>;
+  private retryCurrent: () => void = () => {};
+
+  private get canTurnPages() {
+    return this.state === "ready";
+  }
   readonly keys: { [key: string]: string | Action.Seed } = {
     ArrowDown: "nextPageOrBook",
     Space: "nextPageOrBook",
@@ -43,23 +50,28 @@ export class ActionController {
   private static defaultActions(c: ActionController): {
     [key: string]: Action.Able;
   } {
+    const page = (
+      move: (current: SpreadPages) => Promise<SpreadPages>,
+      enabled: () => Promise<boolean> = async () => true
+    ): Action.Seed => ({
+      action: () => c.moveCurrent(move),
+      isEnable: async () => c.canTurnPages && (await enabled()),
+    });
+    const orBook = (page: string, book: string) =>
+      Action.lazy(() =>
+        c.state === "loading" ? Action.NOP : c.actions[page].or(c.actions[book])
+      );
     return {
-      nextPage: {
-        action: () => c.moveCurrent((current) => current.nextPage()),
-        isEnable: async () => !c.isLoading && (await c.current.hasNext()),
-      },
-      prevPage: {
-        action: () => c.moveCurrent((current) => current.prevPage()),
-        isEnable: async () => !c.isLoading && (await c.current.hasPrev()),
-      },
-      nextHalf: {
-        action: () => c.moveCurrent((current) => current.move(+1)),
-        isEnable: async () => !c.isLoading,
-      },
-      prevHalf: {
-        action: () => c.moveCurrent((current) => current.move(-1)),
-        isEnable: async () => !c.isLoading,
-      },
+      nextPage: page(
+        (current) => current.nextPage(),
+        () => c.current.hasNext()
+      ),
+      prevPage: page(
+        (current) => current.prevPage(),
+        () => c.current.hasPrev()
+      ),
+      nextHalf: page((current) => current.move(1)),
+      prevHalf: page((current) => current.move(-1)),
       fullscreen: {
         action: () => (c.view.fullScreen = true),
         isEnable: async () => !c.view.fullScreen,
@@ -67,25 +79,13 @@ export class ActionController {
       exitFullscreen: () => (c.view.fullScreen = false),
       toggleFullscreen: () =>
         c.doAction(c.view.fullScreen ? "exitFullscreen" : "fullscreen"),
-      nextPageOrBook: Action.lazy(() =>
-        c.isLoading
-          ? Action.NOP
-          : Action.wrap(c.actions["nextPage"]).or(c.actions["nextBook"])
+      nextPageOrBook: orBook("nextPage", "nextBook"),
+      prevPageOrBook: orBook("prevPage", "prevBookLast"),
+      firstPage: page(
+        (current) => current.move(-1 - current.pageNumber()),
+        async () => c.current.pageNumber() !== -1
       ),
-      prevPageOrBook: Action.lazy(() =>
-        c.isLoading
-          ? Action.NOP
-          : Action.wrap(c.actions["prevPage"]).or(c.actions["prevBookLast"])
-      ),
-      firstPage: {
-        action: () => c.moveToPage(-1),
-        isEnable: async () => !c.isLoading && c.current.pageNumber() != -1,
-      },
-      firstPageOrPrevBook: Action.lazy(() =>
-        c.isLoading
-          ? Action.NOP
-          : Action.wrap(c.actions["firstPage"]).or(c.actions["prevBook"])
-      ),
+      firstPageOrPrevBook: orBook("firstPage", "prevBook"),
       zoomReset: () => c.view.zoomReset(),
     };
   }
@@ -124,18 +124,32 @@ export class ActionController {
     if (actions) {
       this.addActions(actions);
     }
-    this.setCurrent(Promise.resolve(current));
+    view.onRetry.add((reason) => {
+      if (reason === "data" && this.reloadPage) {
+        const pageNumber = this.current.pageNumber();
+        const reload = this.reloadPage;
+        const retry = () => reload(pageNumber);
+        void this.load(retry);
+      } else if (reason === "data") {
+        this.retryCurrent();
+      } else {
+        void this.setCurrent(this.current);
+      }
+    });
+    void this.setCurrent(Promise.resolve(current));
   }
-  private moveCurrent(
-    move: (current: SpreadPages) => Promise<SpreadPages>
-  ) {
-    if (this.isLoading) return;
-    this.setCurrent(move(this.current));
+  private moveCurrent(move: (current: SpreadPages) => Promise<SpreadPages>) {
+    if (!this.canTurnPages) return;
+    const source = this.current;
+    const retry = () => move(source);
+    void this.load(retry);
   }
   private moveToPage(pageNumber: number) {
-    if (this.isLoading) return;
-    this.setCurrent(this.current.move(pageNumber - this.current.pageNumber()));
+    this.moveCurrent((current) =>
+      current.move(pageNumber - current.pageNumber())
+    );
   }
+
   addActions(actions: { [key: string]: Action.Able }) {
     Object.entries(actions).forEach(([name, action]) =>
       this.addAction(name, action)
@@ -144,59 +158,84 @@ export class ActionController {
   addAction(name: string, action: Action.Able) {
     this.actions[name] = Action.wrap(action);
   }
-  getAction(action: string | Action.Able): Action | undefined {
-    if (action) {
-      if (typeof action == "string") {
-        return this.getAction(this.actions[action]);
-      }
-      return Action.wrap(action);
-    }
+  getAction(action: string | Action.Able): Action {
+    return Action.wrap(
+      typeof action === "string" ? this.actions[action] : action
+    );
   }
   doAction(action: string | Action.Able): void {
-    const a = this.getAction(action);
-    if (a) {
-      a.action();
-    } else {
-      if (typeof a == "string") {
-        console.log(`📖unknown action ${action}`);
-      }
-    }
+    this.getAction(action).action();
   }
-  async setCurrent(page: SpreadPages | Promise<SpreadPages>) {
+  /** Select a page source. A retry requests fresh data at the current position. */
+  open(
+    source: (page: PageNumber, reload: boolean) => Promise<SpreadPages>,
+    pageNumber: PageNumber
+  ) {
+    this.reloadPage = (page) => source(page, true);
+    return this.load(
+      () => source(pageNumber, false),
+      () => source(pageNumber, true)
+    );
+  }
+
+  setCurrent(
+    page:
+      | SpreadPages
+      | Promise<SpreadPages>
+      | (() => SpreadPages | Promise<SpreadPages>)
+  ) {
+    return this.load(typeof page === "function" ? page : () => page);
+  }
+
+  private async load(
+    load: () => SpreadPages | Promise<SpreadPages>,
+    retry = load
+  ) {
     const request = ++this.currentRequest;
     this.view.invalidatePendingRender();
-    this.isLoading = "then" in page;
-    this.view.setRangeDisabled(this.isLoading);
-    if (this.isLoading) this.updateActionStates(request);
+    this.view.clearLoadError();
+    this.retryCurrent = () => {
+      void this.load(retry);
+    };
+    this.setState("loading");
     let current: SpreadPages;
     try {
-      current = "then" in page ? await page : page;
+      const result = load();
+      // Apply immediate pages before a subsequent request can supersede them.
+      current = "then" in result ? await result : result;
+      if (request !== this.currentRequest) return;
+      this.current = current;
+      await this.view.setCurrent(current);
     } catch (error) {
       if (request === this.currentRequest) {
-        this.isLoading = false;
-        this.view.setRangeDisabled(false);
-        this.updateActionStates(request);
+        this.setState("failed");
+        this.view.showLoadError(this.retryCurrent);
       }
-      throw error;
+      return;
     }
     if (request !== this.currentRequest) return;
-    this.isLoading = false;
-    this.view.setRangeDisabled(false);
-    this.current = current;
-    this.view.setCurrent(this.current);
-    this.updateActionStates(request);
+    this.setState("ready");
   }
-  private updateActionStates(request: number) {
+
+  dispose() {
+    ++this.currentRequest;
+    ++this.actionStateRevision;
+    this.view.dispose();
+  }
+  private setState(state: "loading" | "ready" | "failed") {
+    this.state = state;
+    this.view.setRangeDisabled(state !== "ready");
+    this.updateActionStates();
+  }
+
+  private updateActionStates() {
     const revision = ++this.actionStateRevision;
     Object.entries(this.clicks).forEach(async ([selector, a]) => {
       const action = this.getAction(a);
       const elements = this.view.root.querySelectorAll(selector);
       if (elements.length) {
-        const disabled = action ? !(await action.isEnable()) : true;
-        if (
-          request !== this.currentRequest ||
-          revision !== this.actionStateRevision
-        ) {
+        const disabled = !(await action.isEnable());
+        if (revision !== this.actionStateRevision) {
           return;
         }
         Array.from(elements).forEach((elem) => {

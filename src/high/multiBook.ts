@@ -1,22 +1,23 @@
 import { Book } from "../book/Book";
 import { PageNumber } from "../page/PageNumber";
-import { BookController } from "../book/BookController";
 import { BookLoadAction } from "../view/BookLoadAction";
 import { DummyPage } from "../page/DummyPage";
 import { ActionController } from "../view/ActionController";
 import { Viewer } from "../view/Viewer";
-import { CacheMap } from "./CacheMap";
+import { BookLoader } from "./BookLoader";
 import { viewerDom as defaultViewerDom } from "../viewerDom";
 import { SpreadPages } from "../page/SpreadPages";
 import { EventEmitter as Emitter } from "../view/event/Emitter";
+import { ImageCache } from "../page/ImageCache";
+import { LoadingOptions } from "../loading/options";
 
 type BookSelectorEvent<BookMeta> = {
-  controller: BookController<BookMeta>;
+  book: BookMeta;
   bookIndex: number;
 };
 type BookSelectorSeed<BookMeta> = {
   bookList: Array<BookMeta>;
-  action: BookLoadAction<BookMeta>;
+  action: BookLoadAction;
   onBookChanged: Emitter<BookSelectorEvent<BookMeta>>;
 };
 export interface MultiBook<BookMeta> {
@@ -24,20 +25,29 @@ export interface MultiBook<BookMeta> {
   readonly getBook: (
     book: BookMeta,
     index: number,
-    array: Array<BookMeta>
+    array: Array<BookMeta>,
+    signal?: AbortSignal
   ) => Promise<Book>;
   readonly getName?: (
     book: BookMeta,
     index: number,
     array: Array<BookMeta>
   ) => string;
-  readonly onBookChanged?: (arg: { page: PageNumber; book: BookMeta }) => void;
-  readonly onPageChanged?: (arg: { page: number; book: BookMeta }) => void;
+  readonly onBookChanged?: (arg: {
+    page: PageNumber;
+    book: BookMeta;
+  }) => void | Promise<void>;
+  readonly onPageChanged?: (arg: {
+    page: number;
+    book: BookMeta;
+  }) => void | Promise<void>;
   readonly dummyPage?: SpreadPages;
   readonly getBookSelector?: (
     g: BookSelectorSeed<BookMeta>
   ) => HTMLElement | string;
   readonly viewerDom?: HTMLElement;
+  readonly loading?: LoadingOptions;
+  readonly imageCache?: ImageCache;
 }
 export const multiBook = <BookMeta>({
   bookList,
@@ -64,57 +74,60 @@ export const multiBook = <BookMeta>({
     return select;
   },
   viewerDom = defaultViewerDom(),
+  loading = {},
+  imageCache: sharedImageCache,
 }: MultiBook<BookMeta>) => {
-  const cache = new CacheMap<BookMeta, Book>();
-  const getController = (bookNumber: number): BookController<BookMeta> => {
-    bookNumber = Math.min(Math.max(bookNumber, 0), bookList.length);
-    return {
-      move: (m) => getController(bookNumber + m),
-      canMove: (m) => bookNumber + m >= 0 && bookNumber + m < bookList.length,
-      goTo: (m) => getController(m),
-      getBookMeta: () => bookList[bookNumber],
-      getSpreadPages: (page: PageNumber) =>
-        cache
-          .getOr(bookList[bookNumber], (m) => getBook(m, bookNumber, bookList))
-          .then((b) => b.getSpreadPages(page)),
-    };
-  };
+  const imageCache = sharedImageCache ?? new ImageCache(loading);
+  const books = new BookLoader(
+    bookList.length,
+    (index, signal) => getBook(bookList[index], index, bookList, signal),
+    imageCache,
+    loading
+  );
+  let lastNotifiedBookIndex: number | undefined;
   const selectHandler = new Emitter<BookSelectorEvent<BookMeta>>();
-  let bookRequest = 0;
-  let displayedBook: BookController<BookMeta> | undefined;
   const action = new BookLoadAction(
-    getController(0),
-    async (bc: BookController<BookMeta>, pageNumber) => {
-      const request = ++bookRequest;
-      displayedBook = undefined;
-      controller.setCurrent(dummyPage);
-      selectHandler.trigger({
-        controller: bc,
-        bookIndex: bookList.findIndex((l) => l == bc.getBookMeta()),
-      });
-      controller.setCurrent(
-        bc.getSpreadPages(pageNumber).then((pages) => {
-          if (request === bookRequest) displayedBook = bc;
-          return pages;
-        })
+    bookList.length,
+    (bookIndex, pageNumber) => {
+      void controller.setCurrent(dummyPage);
+      books.select(bookIndex);
+      selectHandler.trigger({ book: bookList[bookIndex], bookIndex });
+      void controller.open(
+        (page, reload) => books.load(bookIndex, page, reload),
+        pageNumber
       );
-      onBookChanged({ book: bc.getBookMeta(), page: pageNumber });
     }
   );
   const controller = new ActionController(
-    new Viewer(viewerDom),
+    new Viewer(viewerDom, { loading, imageCache }),
     dummyPage,
     action.actions()
   );
   controller.view.onChanged.add((page) => {
-    if (!displayedBook || page === dummyPage || page !== controller.current) return;
-    onPageChanged({
-      page: page.pageNumber(),
-      book: displayedBook.getBookMeta(),
-    });
+    if (page === dummyPage || page !== controller.current) return;
+    const bookIndex = action.index;
+    const book = bookList[bookIndex];
+    const event = { book, page: page.pageNumber() };
+    if (lastNotifiedBookIndex !== bookIndex) {
+      lastNotifiedBookIndex = bookIndex;
+      notify(onBookChanged, event);
+    }
+    void books.prefetch(bookIndex, event.page).catch(() => {});
+    notify(onPageChanged, event);
   });
   controller.view.setTitle(
     getBookSelector({ bookList, action, onBookChanged: selectHandler })
   );
-  return { controller, action };
+  const dispose = () => {
+    controller.dispose();
+    books.dispose();
+    if (!sharedImageCache) imageCache.dispose();
+  };
+  return { controller, action, imageCache, dispose };
 };
+
+function notify<T>(callback: (event: T) => void | Promise<void>, event: T) {
+  void Promise.resolve()
+    .then(() => callback(event))
+    .catch((error) => console.warn("📖navigation callback failed", error));
+}

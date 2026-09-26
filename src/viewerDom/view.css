@@ -135,6 +135,7 @@ button.controller.disabled {
   cursor: auto;
 }
 .page {
+  position: relative;
   width: 50%;
   float: left;
   height: 100%;
@@ -151,6 +152,22 @@ button.controller.disabled {
 .img.broken-image {
   background-image: url(broken.svg) !important;
   background-size: 40%;
+}
+.reader-retry {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  padding: 10px 14px;
+  color: #fff;
+  background: #7d2020;
+  border: 1px solid #fff;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.reader-load-retry {
+  position: absolute;
 }
 .img.no-image {
   background-image: linear-gradient(45deg, black, #888) !important;

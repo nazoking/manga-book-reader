@@ -4,9 +4,14 @@ import { PageNumber } from "../page/PageNumber";
 
 export interface Book {
   getSpreadPages(pageA: PageNumber): SpreadPages;
+  /** Optional page-level access used by the reader's bounded preloader. */
+  readonly pageCount?: number;
+  getPage?(index: number): Promise<PageData | null>;
 }
 export const Book = (pages: Promise<PageData>[]): Book => {
   const book = {
+    pageCount: pages.length,
+    getPage: async (index: number) => pages[index] ?? null,
     getSpreadPages(pageA: PageNumber = 0): SpreadPages {
       const page: number = PageNumber.inRange(pageA, pages.length);
       const image1 = pages[page] || null;

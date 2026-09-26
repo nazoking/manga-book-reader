@@ -18,4 +18,7 @@ export class EventEmitter<T> {
       this.handlers.splice(i, 1);
     }
   }
+  clear() {
+    this.handlers.length = 0;
+  }
 }
