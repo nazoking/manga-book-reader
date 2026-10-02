@@ -240,7 +240,7 @@ for (const failure of ["data", "image"]) {
     }, -1);
     await flush();
     assert.equal(typeof retry, "function");
-    assert.equal(await controller.actions.nextHalf.isEnable(), false);
+    assert.equal(await controller.actions.nextHalf.isEnable(), true);
     retry();
     await flush();
     assert.equal(failure === "data" ? loads : imageAttempts, 2);
@@ -253,3 +253,173 @@ for (const failure of ["data", "image"]) {
     assert.equal(await controller.actions.nextHalf.isEnable(), true);
   });
 }
+
+test("navigation skips an unresolved page image and reports only the destination", async (t) => {
+  const slow = deferred();
+  const book = Book([
+    slow.promise,
+    ...[1, 2, 3].map((index) => Promise.resolve({ src: `page-${index}` })),
+  ]);
+  const view = new Viewer(viewerDom());
+  const controller = new ActionController(view, new DummyPage());
+  t.after(() => controller.dispose());
+  const notices = [];
+  view.onChanged.add((pages) => notices.push(pages.pageNumber()));
+  const pending = controller.setCurrent(book.getSpreadPages(0));
+  await flush();
+  controller.doAction("nextHalf");
+  controller.doAction("nextHalf");
+  await flush();
+  assert.equal(controller.current.pageNumber(), 2);
+  assert.equal(view.rightPage.style.backgroundImage, 'url("page-2")');
+  assert.deepEqual(notices, [2]);
+  slow.resolve({ src: "old" });
+  await pending;
+  assert.deepEqual(notices, [2]);
+});
+
+test("chapter acquisition queues forward and backward inputs without skipping chapters", async (t) => {
+  const chapter = deferred();
+  const notices = [];
+  const reader = multiBook({
+    bookList: ["first", "second"],
+    getBook: () => chapter.promise,
+    loading: { preloadNextBook: false },
+    onPageChanged: (event) => notices.push(event),
+    viewerDom: viewerDom(),
+    getBookSelector: () => "",
+  });
+  t.after(() => reader.dispose());
+  reader.action.move(0, -1);
+  reader.controller.doAction("nextPageOrBook");
+  reader.controller.doAction("nextPageOrBook");
+  reader.controller.doAction("prevPageOrBook");
+  await flush();
+  assert.equal(reader.action.index, 0);
+  chapter.resolve(Book(Array.from({ length: 8 }, (_, i) =>
+    Promise.resolve({ src: `page-${i}`, isWidePage: false }))));
+  await flush();
+  await flush();
+  assert.equal(reader.action.index, 0);
+  assert.equal(reader.controller.current.pageNumber(), 1);
+  assert.deepEqual(notices, [{ book: "first", page: 1 }]);
+});
+
+test("new chapter discards pending page operations and their chapter fallback", async (t) => {
+  const metadata = deferred();
+  const old = Book([Promise.resolve({ src: "old" })]).getSpreadPages(0);
+  old.hasNext = () => metadata.promise;
+  const reader = multiBook({
+    bookList: ["old", "new", "unwanted"],
+    getBook: async (name) => name === "old" ? { getSpreadPages: () => old }
+      : Book([Promise.resolve({ src: name })]),
+    loading: { preloadNextBook: false },
+    viewerDom: viewerDom(),
+    getBookSelector: () => "",
+  });
+  t.after(() => reader.dispose());
+  reader.action.move(0, 0);
+  await flush();
+  // Queue during acquisition so availability is evaluated inside the queue.
+  void reader.controller.setCurrent(Promise.resolve(old));
+  reader.controller.doAction("nextPageOrBook");
+  reader.controller.doAction("nextHalf");
+  await flush();
+  reader.action.move(1, -1);
+  await flush();
+  metadata.resolve(false);
+  await flush();
+  assert.equal(reader.action.index, 1);
+  assert.equal(reader.controller.current.pageNumber(), -1);
+  assert.equal(reader.controller.view.leftPage.style.backgroundImage, 'url("new")');
+});
+
+test("range navigation supersedes pending relative navigation", async (t) => {
+  const slow = deferred();
+  const book = Book([
+    slow.promise,
+    ...[1, 2, 3, 4].map((i) => Promise.resolve({ src: `page-${i}` })),
+  ]);
+  const view = new Viewer(viewerDom());
+  let range;
+  const disabled = [];
+  view.setRangeHandler = (handler) => { range = handler; };
+  view.setRangeDisabled = (value) => disabled.push(value);
+  const controller = new ActionController(view, new DummyPage());
+  t.after(() => controller.dispose());
+  const pending = controller.open(async (position) => book.getSpreadPages(position), 0);
+  await flush();
+  controller.doAction("nextPage");
+  await flush();
+  range(3);
+  await flush();
+  assert.equal(controller.current.pageNumber(), 3);
+  assert.equal(view.rightPage.style.backgroundImage, 'url("page-3")');
+  assert.ok(disabled.every((value) => value === false));
+  slow.resolve({ src: "old" });
+  await pending;
+  await flush();
+  assert.equal(controller.current.pageNumber(), 3);
+});
+
+test("queued next-page navigation at the end selects the next chapter", async (t) => {
+  const chapter = deferred();
+  const reader = multiBook({
+    bookList: ["first", "second"],
+    getBook: async (name) => name === "first" ? chapter.promise
+      : Book([Promise.resolve({ src: "second" })]),
+    loading: { preloadNextBook: false },
+    viewerDom: viewerDom(),
+    getBookSelector: () => "",
+  });
+  t.after(() => reader.dispose());
+  reader.action.move(0, 0);
+  reader.controller.doAction("nextPageOrBook");
+  await flush();
+  chapter.resolve(Book([Promise.resolve({ src: "first" })]));
+  await flush();
+  await flush();
+  assert.equal(reader.action.index, 1);
+  assert.equal(reader.controller.view.leftPage.style.backgroundImage, 'url("second")');
+});
+
+test("retry after failed acquisition replays queued navigation with fresh chapter data", async (t) => {
+  let reject;
+  const firstAttempt = new Promise((_, fail) => { reject = fail; });
+  const view = new Viewer(viewerDom());
+  const controller = new ActionController(view, new DummyPage());
+  t.after(() => controller.dispose());
+  const book = Book(Array.from({ length: 8 }, (_, i) =>
+    Promise.resolve({ src: `page-${i}`, isWidePage: false })));
+  const loads = [];
+  let retry;
+  view.showLoadError = (callback) => { retry = callback; };
+  void controller.open(async (position, reload) => {
+    loads.push({ position, reload });
+    return reload ? book.getSpreadPages(position) : firstAttempt;
+  }, 1);
+  controller.doAction("nextPageOrBook");
+  controller.doAction("nextHalf");
+  await flush();
+  reject(new Error("chapter unavailable"));
+  await flush();
+  assert.equal(typeof retry, "function");
+  retry();
+  await flush();
+  await flush();
+  assert.deepEqual(loads, [{ position: 1, reload: false }, { position: 1, reload: true }]);
+  assert.equal(controller.current.pageNumber(), 4);
+  assert.equal(view.rightPage.style.backgroundImage, 'url("page-4")');
+});
+
+test("composite shortcuts preserve explicitly replaced page actions", async (t) => {
+  let calls = 0;
+  const controller = new ActionController(new Viewer(viewerDom()), new DummyPage(), {
+    nextPage: () => { calls++; },
+  });
+  t.after(() => controller.dispose());
+  await flush();
+  controller.doAction("nextPageOrBook");
+  await flush();
+  assert.equal(calls, 1);
+});

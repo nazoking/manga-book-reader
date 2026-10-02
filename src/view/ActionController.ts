@@ -8,11 +8,18 @@ export class ActionController {
   private currentRequest = 0;
   private actionStateRevision = 0;
   private state: "loading" | "ready" | "failed" = "ready";
+  private pendingPage?: Promise<SpreadPages>;
+  private pendingRetry?: () => SpreadPages | Promise<SpreadPages>;
+  private navigationGeneration = 0;
+  private pageSource?: (
+    page: PageNumber,
+    reload: boolean
+  ) => Promise<SpreadPages>;
   private reloadPage?: (page: PageNumber) => Promise<SpreadPages>;
   private retryCurrent: () => void = () => {};
 
   private get canTurnPages() {
-    return this.state === "ready";
+    return this.state !== "failed";
   }
   readonly keys: { [key: string]: string | Action.Seed } = {
     ArrowDown: "nextPageOrBook",
@@ -53,21 +60,55 @@ export class ActionController {
     const page = (
       move: (current: SpreadPages) => Promise<SpreadPages>,
       enabled: () => Promise<boolean> = async () => true
-    ): Action.Seed => ({
-      action: () => c.moveCurrent(move),
-      isEnable: async () => c.canTurnPages && (await enabled()),
-    });
+    ): Action =>
+      Action.wrap({
+        action: () => c.moveCurrent(move),
+        isEnable: async () =>
+          c.canTurnPages && (c.state === "loading" || (await enabled())),
+      });
     const orBook = (page: string, book: string) =>
-      Action.lazy(() =>
-        c.state === "loading" ? Action.NOP : c.actions[page].or(c.actions[book])
-      );
-    return {
+      Action.wrap({
+        action: () => {
+          // Preserve explicitly replaced page actions in composite shortcuts.
+          if (c.actions[page] !== defaults[page]) {
+            c.actions[page].or(c.actions[book]).action();
+            return;
+          }
+          if (c.state === "failed") {
+            c.actions[book]?.action();
+            return;
+          }
+          c.moveCurrent(async (current, isCurrent) => {
+            const forward = page === "nextPage";
+            const available =
+              page === "firstPage"
+                ? current.pageNumber() !== -1
+                : await (forward ? current.hasNext() : current.hasPrev());
+            if (!isCurrent()) return current;
+            if (available) {
+              return page === "firstPage"
+                ? current.move(-1 - current.pageNumber())
+                : forward
+                ? current.nextPage()
+                : current.prevPage();
+            }
+            await c.actions[book]?.action();
+            return current;
+          });
+        },
+        isEnable: async () =>
+          c.state === "loading" ||
+          (await c.actions[page].or(c.actions[book]).isEnable()),
+      });
+    const defaults: Record<string, Action.Able> = {
       nextPage: page(
-        (current) => current.nextPage(),
+        async (current) =>
+          (await current.hasNext()) ? current.nextPage() : current,
         () => c.current.hasNext()
       ),
       prevPage: page(
-        (current) => current.prevPage(),
+        async (current) =>
+          (await current.hasPrev()) ? current.prevPage() : current,
         () => c.current.hasPrev()
       ),
       nextHalf: page((current) => current.move(1)),
@@ -88,6 +129,7 @@ export class ActionController {
       firstPageOrPrevBook: orBook("firstPage", "prevBook"),
       zoomReset: () => c.view.zoomReset(),
     };
+    return defaults;
   }
 
   constructor(
@@ -126,6 +168,7 @@ export class ActionController {
     }
     view.onRetry.add((reason) => {
       if (reason === "data" && this.reloadPage) {
+        ++this.navigationGeneration;
         const pageNumber = this.current.pageNumber();
         const reload = this.reloadPage;
         const retry = () => reload(pageNumber);
@@ -138,13 +181,36 @@ export class ActionController {
     });
     void this.setCurrent(Promise.resolve(current));
   }
-  private moveCurrent(move: (current: SpreadPages) => Promise<SpreadPages>) {
+  private moveCurrent(
+    move: (
+      current: SpreadPages,
+      isCurrent: () => boolean
+    ) => Promise<SpreadPages>
+  ) {
     if (!this.canTurnPages) return;
-    const source = this.current;
-    const retry = () => move(source);
-    void this.load(retry);
+    const current = this.current;
+    const source = this.pendingPage ?? Promise.resolve(current);
+    const sourceRetry = this.pendingRetry ?? (() => current);
+    const generation = this.navigationGeneration;
+    const retry = () => {
+      const retryGeneration = this.navigationGeneration;
+      return Promise.resolve(sourceRetry()).then((current) =>
+        move(current, () => retryGeneration === this.navigationGeneration)
+      );
+    };
+    const load = () =>
+      source.then((current) => {
+        // A new source (chapter selection or retry) discards queued navigation.
+        if (generation !== this.navigationGeneration) return current;
+        return move(current, () => generation === this.navigationGeneration);
+      });
+    void this.load(load, retry);
   }
   private moveToPage(pageNumber: number) {
+    if (this.pageSource) {
+      void this.open(this.pageSource, pageNumber);
+      return;
+    }
     this.moveCurrent((current) =>
       current.move(pageNumber - current.pageNumber())
     );
@@ -171,6 +237,8 @@ export class ActionController {
     source: (page: PageNumber, reload: boolean) => Promise<SpreadPages>,
     pageNumber: PageNumber
   ) {
+    ++this.navigationGeneration;
+    this.pageSource = source;
     this.reloadPage = (page) => source(page, true);
     return this.load(
       () => source(pageNumber, false),
@@ -184,6 +252,7 @@ export class ActionController {
       | Promise<SpreadPages>
       | (() => SpreadPages | Promise<SpreadPages>)
   ) {
+    ++this.navigationGeneration;
     return this.load(typeof page === "function" ? page : () => page);
   }
 
@@ -195,19 +264,27 @@ export class ActionController {
     this.view.invalidatePendingRender();
     this.view.clearLoadError();
     this.retryCurrent = () => {
+      ++this.navigationGeneration;
       void this.load(retry);
     };
     this.setState("loading");
     let current: SpreadPages;
     try {
       const result = load();
+      this.pendingPage = Promise.resolve(result);
+      this.pendingRetry = retry;
       // Apply immediate pages before a subsequent request can supersede them.
       current = "then" in result ? await result : result;
       if (request !== this.currentRequest) return;
+      this.pendingPage = undefined;
+      this.pendingRetry = undefined;
       this.current = current;
+      this.setState("ready");
       await this.view.setCurrent(current);
     } catch (error) {
       if (request === this.currentRequest) {
+        this.pendingPage = undefined;
+        this.pendingRetry = undefined;
         this.setState("failed");
         this.view.showLoadError(this.retryCurrent);
       }
@@ -218,13 +295,14 @@ export class ActionController {
   }
 
   dispose() {
+    ++this.navigationGeneration;
     ++this.currentRequest;
     ++this.actionStateRevision;
     this.view.dispose();
   }
   private setState(state: "loading" | "ready" | "failed") {
     this.state = state;
-    this.view.setRangeDisabled(state !== "ready");
+    this.view.setRangeDisabled(state === "failed");
     this.updateActionStates();
   }
 

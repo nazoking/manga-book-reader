@@ -237,6 +237,8 @@ await controller.open(async (page, reload) => {
 
 `getAction()` は未知の名前でも `undefined` ではなく何もしない Action を返します。存在確認が必要なら `controller.actions[name]` を確認してください。
 
+ページ・章の取得中も `ActionController` は移動操作を受け付けます。相対移動は取得結果を基準に入力順に適用し、画像の描画完了は待ちません。章切り替えや新しい `open()` / `setCurrent()` は以前の移動要求を破棄します。`open()` で取得元を指定している場合、スライダーによる位置指定は途中の相対移動を待たず、その取得元に最新の位置を要求します。見開き移動に必要なページデータが未取得の場合は移動先の確定を待ちますが、入力は失われません。`onChanged` とページ位置の保存は引き続き表示成功時に行います。
+
 ### Viewer 単独利用
 
 `new reader.Viewer(viewerDom)` は有効なままで、第2引数に `{ loading, imageCache }` を渡せるようになりました。`setCurrent()` は画像・レイアウト処理まで待ち、画像またはページデータの失敗を再試行 UI へ変換します。`onChanged` は画像表示成功時に通知します。

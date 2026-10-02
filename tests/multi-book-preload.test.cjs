@@ -309,7 +309,7 @@ test("image retry redraws through the controller without reloading chapter data"
   await flush();
   assert.deepEqual(notices, []);
   retry();
-  assert.equal(await reader.controller.actions.nextHalf.isEnable(), false);
+  assert.equal(await reader.controller.actions.nextHalf.isEnable(), true);
   await flush();
   assert.equal(bookLoads, 1);
   assert.equal(imageAttempts, 2);
