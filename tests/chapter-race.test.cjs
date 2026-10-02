@@ -19,9 +19,7 @@ const deferred = () => {
   });
   return { promise, resolve };
 };
-const flush = async () => {
-  for (let i = 0; i < 20; i++) await Promise.resolve();
-};
+const flush = () => new Promise((resolve) => setImmediate(resolve));
 const page = (src, image = Promise.resolve({ src, isWidePage: false })) => {
   const p = new DummyPage();
   p.image1 = () => image;

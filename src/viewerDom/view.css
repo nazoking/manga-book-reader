@@ -190,13 +190,16 @@ button.controller.disabled {
 .right-page {
   background-position-x: left;
 }
-.single .left.page {
+.single:not(.single-left) .left.page,
+.single.single-left .right.page {
   display: none;
 }
-.single .right.page {
+.single:not(.single-left) .right.page,
+.single.single-left .left.page {
   width: 100%;
 }
-.single .right-page {
+.single .right-page,
+.single .left-page {
   background-position-x: center;
 }
 

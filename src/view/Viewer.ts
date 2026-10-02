@@ -1,3 +1,4 @@
+import { abortError } from "../loading/retry";
 import { PageData } from "../page/PageData";
 import { SpreadPages } from "../page/SpreadPages";
 import { EventHandler } from "./event/EventHandler";
@@ -208,6 +209,8 @@ export class Viewer {
     this.invalidatePendingRender();
     const renderController = new AbortController();
     this.renderController = renderController;
+    // Default to a portrait pair while the new images are being measured.
+    this.inner.classList.remove("single", "single-left");
     [this.rightPage, this.leftPage].forEach((tag) => {
       this.setPageImageType(tag, "loading-image");
       tag.style.backgroundImage = "";
@@ -226,31 +229,77 @@ export class Viewer {
     );
     this.zoomReset();
     this.inner.dataset.pageNumber = `${pages.pageNumber()}`;
+    const leftController = new AbortController();
+    renderController.signal.addEventListener(
+      "abort",
+      () => leftController.abort(),
+      { once: true }
+    );
+    let layoutRevision = 0;
+    const applyLayout = async () => {
+      const revision = ++layoutRevision;
+      // The anchor never changes. Only a now-wide member can evict the left side.
+      if (renderController.signal.aborted) return;
+      if (pages.image2() === null) {
+        leftController.abort();
+        this.leftPage.style.backgroundImage = "";
+        this.setPageImageType(this.leftPage, "no-image");
+      }
+      const single = await pages.isSingleUnit();
+      const singleLeft = single && !(await pages.image1());
+      if (!renderController.signal.aborted && revision === layoutRevision) {
+        this.inner.classList.toggle("single", single);
+        this.inner.classList.toggle("single-left", singleLeft);
+      }
+    };
+    const unsubscribe = pages.onLayoutChanged?.(() => {
+      void applyLayout().catch(() => {});
+    });
+    if (unsubscribe)
+      renderController.signal.addEventListener("abort", unsubscribe, {
+        once: true,
+      });
+    void applyLayout().catch(() => {});
     const [rightLoaded, leftLoaded] = await Promise.all([
-      this.renderPage(pages.image1(), this.rightPage, renderController.signal),
-      this.renderPage(pages.image2(), this.leftPage, renderController.signal),
+      this.renderPage(
+        pages.image1(),
+        this.rightPage,
+        renderController.signal,
+        (image) =>
+          pages.setImageSize?.("right", image.naturalWidth, image.naturalHeight)
+      ),
+      this.renderPage(
+        pages.image2(),
+        this.leftPage,
+        leftController.signal,
+        (image) =>
+          pages.setImageSize?.("left", image.naturalWidth, image.naturalHeight)
+      ),
     ]);
     if (renderController.signal.aborted) return;
     try {
-      const single = await pages.isSingleUnit();
-      if (!renderController.signal.aborted)
-        this.inner.classList.toggle("single", single);
+      await applyLayout();
     } catch {
       // Keep the last known layout if custom page metadata fails.
     }
-    if (!renderController.signal.aborted && rightLoaded && leftLoaded)
+    if (
+      !renderController.signal.aborted &&
+      rightLoaded &&
+      (leftLoaded || pages.image2() === null)
+    )
       this.onChanged.trigger(pages);
   }
 
   private async renderPage(
     promise: Promise<PageData | null> | null,
     tag: HTMLElement,
-    signal: AbortSignal
+    signal: AbortSignal,
+    onLoaded: (image: HTMLImageElement) => void
   ): Promise<boolean> {
     let failure: "data" | "image" = "data";
     let release = () => {};
     try {
-      const data = await promise;
+      const data = await this.pageData(promise, signal);
       if (signal.aborted) return false;
       if (!data) {
         this.setPageImageType(tag, "no-image");
@@ -261,7 +310,8 @@ export class Viewer {
       signal.addEventListener("abort", release, { once: true });
       const image = await this.imageCache.load(data.src, { signal });
       if (signal.aborted) return false;
-      data.isWidePage ??= image.naturalHeight < image.naturalWidth;
+      onLoaded(image);
+      if (signal.aborted) return false;
       tag.style.backgroundImage = `url(${JSON.stringify(data.src)})`;
       this.setPageImageType(tag, "show-image");
       return true;
@@ -274,6 +324,20 @@ export class Viewer {
       }
       return false;
     }
+  }
+
+  private pageData(
+    promise: Promise<PageData | null> | null,
+    signal: AbortSignal
+  ) {
+    if (signal.aborted) return Promise.reject(abortError());
+    return new Promise<PageData | null>((resolve, reject) => {
+      const abort = () => reject(abortError());
+      signal.addEventListener("abort", abort, { once: true });
+      Promise.resolve(promise)
+        .then(resolve, reject)
+        .finally(() => signal.removeEventListener("abort", abort));
+    });
   }
 
   private retryButton(label: string, className: string, retry: () => void) {

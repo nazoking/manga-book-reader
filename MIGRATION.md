@@ -237,7 +237,7 @@ await controller.open(async (page, reload) => {
 
 `getAction()` は未知の名前でも `undefined` ではなく何もしない Action を返します。存在確認が必要なら `controller.actions[name]` を確認してください。
 
-ページ・章の取得中も `ActionController` は移動操作を受け付けます。相対移動は取得結果を基準に入力順に適用し、画像の描画完了は待ちません。章切り替えや新しい `open()` / `setCurrent()` は以前の移動要求を破棄します。`open()` で取得元を指定している場合、スライダーによる位置指定は途中の相対移動を待たず、その取得元に最新の位置を要求します。見開き移動に必要なページデータが未取得の場合は移動先の確定を待ちますが、入力は失われません。`onChanged` とページ位置の保存は引き続き表示成功時に行います。
+ページ・章の取得中も `ActionController` は移動操作を受け付けます。相対移動は取得結果を基準に入力順に適用し、画像の描画完了は待ちません。章切り替えや新しい `open()` / `setCurrent()` は以前の移動要求を破棄します。`open()` で取得元を指定している場合、スライダーによる位置指定は途中の相対移動を待たず、その取得元に最新の位置を要求します。標準Bookの移動はページデータ・画像寸法の取得も待たず、未判定を縦長として2画像単位で進みます（節9）。`onChanged` とページ位置の保存は引き続き表示成功時に行います。
 
 ### Viewer 単独利用
 
@@ -325,3 +325,30 @@ ZIP などから作った Blob URL はライブラリが revoke しません。�
 `BookController` は default export のキーではありませんでしたが、公開 `BookLoadAction` と独自セレクターから利用できたため本書で移行対象としています。内部ファイル `src/view/event/loadImage.ts` も削除されました。内部から直接 import していた場合は `ImageCache.load()` へ移してください。
 
 開発途中の `pin` / `unpin` / `releaseDisplay` / `displayOwner` / `displayToken` / `ImageCache.retry` / `ImageCache.prefetch` / `cancelPrefetch` / `Viewer.whenLayoutReady()` や `setCurrent` の再試行用第2引数は、比較元 `3ca1e63` の公開 API にはありません。途中版を使っていた場合に限り、保持は `retain()`、画像再試行は再度 `load()`、先読みは `ImagePrefetch.update()` / `clear()`、描画待機は `await setCurrent()`、データ再試行は取得関数または `open()` へ移してください。
+
+## 9. 見開き表示・ページ移動（T01）
+
+標準 `Book` は `isWidePage` が未指定なら、Viewerが `ImageCache` で取得した画像の `naturalWidth > naturalHeight` を使って横長を判定します。標準 `scraiping` も従来どおり画像URLだけで利用でき、事前の寸法指定は不要です。判定結果はBookに保持し、凍結したPageDataにも書き込みません。明示したtrue/falseは自動判定より優先します。
+
+```js
+// 寸法は画像取得後に自動判定される。
+const book = reader.Book(imageUrls.map(src => Promise.resolve({ src })));
+await controller.setCurrent(book.getSpreadPages(-1));
+```
+
+縦長の2画像を基本の見開きとして扱い、両方の取得・寸法判定を並行して行います。横長は単独の全面表示です。通常ページの直後が横長なら、通常ページだけを右半分に表示し、次の操作で横長へ進みます。位置-1は右空白・先頭画像が左で、横長の先頭画像は左側を全面化します。
+
+**未判定の画像も縦長として2画像で表示・移動します。** 寸法・画像・PageDataの取得を待たず、位置0→2→4と連続して移動できます。章取得中は従来どおり入力順序を保持し、章を取得したら適用します。
+
+現在の見開きのどちらかが横長と判明した場合だけ左画像を外します。右が横長なら右を全面化し、左だけが横長なら通常の右画像を半幅のまま残します。現在位置と右画像は固定します。位置-1では横長の先頭画像を左側の全面表示にします。
+
+縦長の確定、読み飛ばした画像や現在非表示の画像の遅い判定では、現在の位置・画像・レイアウトを変更しません。章全体のペア構成を再計算して現在位置を動かすことも、過去の移動を補正して画像を表示し直すこともありません。次回のユーザー操作は、その時点で判明している現在の見開きの構成を使います。
+
+- `hasNext()` は次の操作で範囲内の別位置に進める場合だけtrue。判定済みの通常画像3件の位置1（右1/左2）は末尾です。未判定も縦長のペアとして数えるため、通常画像3件の位置1は未判定でも末尾です。
+- `hasPrev()` は位置0でもtrueとなり、`prevPage()` で表紙位置-1へ戻れます。`prevPageOrBook` が前章へ移るのは-1からです。空Bookは前後ともfalse。
+- `canMove(delta)` は `move(delta)` と同じ相対量です。非ゼロかつ移動先が `[-1, pageMax - 1]` 内ならtrue。絶対位置targetの確認は `canMove(target - current.pageNumber())` へ変更してください。範囲外のmoveは従来どおり丸めます。
+- `nextPage()` の結果に対する `prevPage()` は元の状態へ戻ります。位置指定/半ページ移動で直接作った状態から戻る場合は、既知の構成を辿って直前の位置へ戻るため、表示範囲が重なることがあります。
+
+`SpreadPages.setImageSize(side, width, height)` は、描画で取得済みの画像寸法をBookへ渡す任意のフックです。`onLayoutChanged` はその見開きの構成が変わった場合の通知です。Viewerが自動で接続し、独自Bookは実装不要です。Book単独で寸法を通知する場合は、対象のページデータを取得した後に `spread.setImageSize?.("right", width, height)` または `"left"` を使います。寸法専用の画像取得や、表示していない見開きの再描画は行いません。
+
+公開キー、`image1()`=右・`image2()`=左、末尾指定の計算式は変わりません。寸法未指定のブラウザー利用例は `tests/browser/spread-pages.html` を参照してください。

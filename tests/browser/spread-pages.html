@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>T01 spread regression</title>
+<style>
+  body {
+    font: 16px sans-serif;
+    background: #eee;
+  }
+  #results {
+    white-space: pre-wrap;
+  }
+  .case {
+    display: inline-block;
+    margin: 12px;
+  }
+</style>
+<h1>T01: 見開き表示の回帰確認</h1>
+<p>npm run build 後、リポジトリを HTTP サーバーで公開してこのページを開く。</p>
+<pre id="results">検証中…</pre>
+<script type="module">
+  import reader from "../../dist/index.mjs";
+  const results = document.querySelector("#results");
+  const image = (label, wide, color) => ({
+    src:
+      "data:image/svg+xml," +
+      encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="${
+          wide ? 1200 : 600
+        }" height="900"><rect width="100%" height="100%" fill="${color}"/><text x="60" y="200" font-size="90">${label}</text></svg>`
+      ),
+    isWidePage: wide,
+  });
+  const report = [];
+  const assert = (condition, label) => {
+    if (!condition) throw Error(label);
+    report.push("PASS: " + label);
+  };
+  async function show(label, pages, position) {
+    const section = document.createElement("div");
+    section.className = "case";
+    section.innerHTML = `<h2>${label}</h2>`;
+    document.body.append(section);
+    const view = new reader.Viewer();
+    section.append(view.wrapper);
+    const spread = reader
+      .Book(pages.map((p) => Promise.resolve(Object.freeze(p))))
+      .getSpreadPages(position);
+    await view.setCurrent(spread);
+    return { view, spread };
+  }
+  const rect = (element) => element.getBoundingClientRect();
+  try {
+    const cover = await show(
+      "横長の先頭 (-1)",
+      [image("WIDE", true, "#9ce")],
+      -1
+    );
+    assert(
+      rect(cover.view.leftPage).width === rect(cover.view.pages).width &&
+        rect(cover.view.leftPage).width > 0,
+      "wide cover occupies full width on left"
+    );
+    assert(rect(cover.view.rightPage).width === 0, "empty right side hidden");
+    const normal = image("NORMAL", false, "#eca");
+    const wide = image("WIDE", true, "#9ce");
+    const mixed = await show("通常→横長 (0)", [normal, wide, normal], 0);
+    assert(
+      mixed.view.rightPage.style.backgroundImage.includes("data:image"),
+      "normal before wide stays visible"
+    );
+    assert(
+      mixed.view.leftPage.style.backgroundImage === "",
+      "following wide is excluded"
+    );
+    const next = await mixed.spread.nextPage();
+    assert(next.pageNumber() === 1, "wide is next position");
+    await mixed.view.setCurrent(next);
+    assert(
+      rect(mixed.view.rightPage).width === rect(mixed.view.pages).width,
+      "wide on right occupies full width"
+    );
+    assert(rect(mixed.view.leftPage).width === 0, "unused left side hidden");
+    const pair = await show("通常の見開き (1)", [normal, normal, normal], 1);
+    assert(
+      rect(pair.view.leftPage).width > 0 &&
+        rect(pair.view.leftPage).width === rect(pair.view.rightPage).width,
+      "normal pair displays both halves"
+    );
+    assert(!(await pair.spread.hasNext()), "pair at end cannot advance");
+    const section = document.createElement("div");
+    section.className = "case";
+    section.innerHTML =
+      '<h2>未解決画像からの移動</h2><button>読み込みを待たず次へ</button><p class="status">位置0: 画像データ未取得</p>';
+    document.body.append(section);
+    const pendingBook = reader.Book([
+      new Promise(() => {}),
+      Promise.resolve(normal),
+      Promise.resolve(normal),
+    ]);
+    const pendingView = new reader.Viewer();
+    section.append(pendingView.wrapper);
+    const controller = new reader.ActionController(
+      pendingView,
+      pendingBook.getSpreadPages(0)
+    );
+    section
+      .querySelector("button")
+      .addEventListener("click", () => controller.doAction("nextPage"));
+    pendingView.onChanged.add((spread) => {
+      section.querySelector(
+        ".status"
+      ).textContent = `位置${spread.pageNumber()}: 読み込み待ちから移動成功`;
+      assert(
+        spread.pageNumber() === 2,
+        "next-page input bypasses unresolved image data"
+      );
+      results.textContent = report.join("\n") + "\nALL PASSED";
+    });
+    const lateSection = document.createElement("div");
+    lateSection.className = "case";
+    lateSection.innerHTML =
+      '<h2>表示中の左画像が後から横長</h2><button>左画像の横長判定を確定</button><p class="status">位置0: 左画像は未判定</p>';
+    document.body.append(lateSection);
+    let resolveLeft;
+    const leftData = new Promise((resolve) => {
+      resolveLeft = resolve;
+    });
+    const lateBook = reader.Book([
+      Promise.resolve(normal),
+      leftData,
+      Promise.resolve(normal),
+    ]);
+    const lateView = new reader.Viewer();
+    lateSection.append(lateView.wrapper);
+    const lateRender = lateView.setCurrent(lateBook.getSpreadPages(0));
+    lateSection.querySelector("button").addEventListener("click", async () => {
+      resolveLeft(wide);
+      await lateRender;
+      assert(
+        lateView.inner.dataset.pageNumber === "0" &&
+          lateView.rightPage.style.backgroundImage.includes("data:image") &&
+          lateView.leftPage.style.backgroundImage === "",
+        "late wide left evicts left without changing right or anchor"
+      );
+      lateSection.querySelector(".status").textContent =
+        "位置0のまま: 左画像を除外、右画像を維持";
+      results.textContent = report.join("\n") + "\nALL PASSED";
+    });
+    results.textContent = report.join("\n") + "\nALL PASSED";
+  } catch (error) {
+    results.textContent = report.join("\n") + "\nFAIL: " + error.message;
+  }
+</script>
